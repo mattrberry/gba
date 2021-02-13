@@ -1,6 +1,6 @@
-import bitops, strutils
+import bitops, strutils, std/macros
 
-import macros, types
+import types
 
 proc unimplemented(instr: Word) =
   echo "Unimplemented opcode: 0x" & instr.toHex(8)
@@ -36,42 +36,43 @@ proc software_interrupt(instr: Word) =
 proc data_processing[immediate: static bool, op: static int, set_cond: static bool](instr: Word) =
   echo "Unimplemented instruction: DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
-const lut* = block:
-  echo "Filling LUT..."
-  var tmp: array[4096, Instruction]
-  staticFor i, 0, tmp.len:
+# todo: move this back to nice block creation if the compile time is ever reduced...
+macro lutBuilder(): untyped =
+  result = newTree(nnkBracket)
+  const InstrCount = 4096
+  for i in 0 ..< InstrCount:
     if (i and 0b111111001111) == 0b000000001001:
-      tmp[i] = multiply[i.testBit(5), i.testBit(4)]
+      result.add newTree(nnkBracketExpr, bindSym"multiply", i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111110001111) == 0b000010001001:
-      tmp[i] = multiply_long[i.testBit(6), i.testBit(5), i.testBit(4)]
+      result.add newTree(nnkBracketExpr, bindSym"multiply_long", i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111110111111) == 0b000100001001:
-      tmp[i] = single_data_swap[i.testBit(6)]
+      result.add newTree(nnkBracketExpr, bindSym"single_data_swap", i.testBit(6).newLit())
     elif (i and 0b111111111111) == 0b000100100001:
-      tmp[i] = branch_exchange
+      result.add bindSym"branch_exchange"
     elif (i and 0b111000001001) == 0b000000001001:
-      tmp[i] = halfword_data_transfer[i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4), (i shr 1) and 0b11]
+      result.add newTree(nnkBracketExpr, bindSym"halfword_data_transfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), newLit (i shr 1) and 0b11)
     elif (i and 0b111000000001) == 0b011000000001:
-      discard # undefined instruction
+      result.add newNilLit() # undefined instruction
     elif (i and 0b110000000000) == 0b010000000000:
-      tmp[i] = single_data_transfer[i.testBit(9), i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4)]
+      result.add newTree(nnkBracketExpr, bindSym"single_data_transfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111000000000) == 0b100000000000:
-      tmp[i] = block_data_transfer[i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4)]
+      result.add newTree(nnkBracketExpr, bindSym"block_data_transfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111000000000) == 0b101000000000:
-      tmp[i] = branch[i.testBit(8)]
+      result.add newTree(nnkBracketExpr, bindSym"branch", i.testBit(8).newLit())
     elif (i and 0b111000000000) == 0b110000000000:
-      discard # coprocessor data transfer
+      result.add newNilLit() # coprocessor data transfer
     elif (i and 0b111100000001) == 0b111000000000:
-      discard # coprocessor data operation
+      result.add newNilLit() # coprocessor data operation
     elif (i and 0b111100000001) == 0b111000000001:
-      discard # coprocessor register transfer
+      result.add newNilLit() # coprocessor register transfer
     elif (i and 0b111100000000) == 0b111100000000:
-      tmp[i] = software_interrupt
+      result.add bindSym"software_interrupt"
     elif (i and 0b110000000000) == 0b000000000000:
-      tmp[i] = data_processing[i.testBit(9), (i shr 5) and 0xF, i.testBit(4)]
+      result.add newTree(nnkBracketExpr, bindSym"data_processing", i.testBit(9).newLit(), newLit((i shr 5) and 0xF), i.testBit(4).newLit())
     else:
-      tmp[i] = unimplemented
-  tmp
+      result.add bindSym"unimplemented"
+
+const lut* = lutBuilder()
 
 proc exec_arm*(instr: Word) =
-    lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](instr)
-
+  lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](instr)
