@@ -1,12 +1,17 @@
-import arm, types
+import bitops
+
+import arm, bus, types
 
 proc newCPU*(gba: GBA): CPU =
   new result
   result.gba = gba
   result.r[15] = 0x08000000
+  result.r[15] += 8
 
-proc run*(cpu: var CPU) =
-  echo "running"
-  exec_arm(0xE3A0E102'u32)
-  exec_arm(0xE18EE82E'u32)
-  exec_arm(0xE58FE000'u32)
+proc readInstr(cpu: var CPU): Word =
+  cpu.r[15].clearMask(3)
+  result = cpu.gba.bus.readWord(cpu.r[15] - 8)
+
+proc tick*(cpu: var CPU) =
+  let instr = cpu.readInstr()
+  exec_arm(instr)

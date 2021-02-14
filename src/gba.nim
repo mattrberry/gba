@@ -1,4 +1,4 @@
-import os, sequtils
+import os
 
 import gba/[bus, cpu, types]
 
@@ -6,18 +6,12 @@ if paramCount() != 2:
   echo("Run with ./gba /path/to/bios /path/to/rom")
   quit(1)
 
-proc readFileAsBytes(path: string): seq[uint8] =
-  var file = open(path)
-  result = newSeqWith(int(file.getFileSize()), 0'u8)
-  discard readBytes(file, result, 0, file.getFileSize())
+proc newGBA(bios, rom: string): GBA =
+  new result
+  result.bus = newBus(result, bios, rom)
+  result.cpu = newCPU(result)
 
 var
-  bios = readFileAsBytes(paramStr(1))
-  rom = readFileAsBytes(paramStr(2))
+  gba = newGBA(paramStr(1), paramStr(2))
 
-var
-  gba = new GBA
-  busObj = newBus(gba, bios)
-  cpuObj = newCPU(gba)
-
-cpuObj.run()
+gba.cpu.tick()
