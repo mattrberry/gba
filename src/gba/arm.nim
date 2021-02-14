@@ -2,39 +2,38 @@ import bitops, strutils, std/macros
 
 import types
 
-proc unimplemented(instr: Word) =
-  echo "Unimplemented opcode: 0x" & instr.toHex(8)
-  quit 1
+proc unimplemented(gba: GBA, instr: Word) =
+  quit "Unimplemented opcode: 0x" & instr.toHex(8)
 
-proc multiply[accumulate, set_cond: static bool](instr: Word) =
-  echo "Unimplemented instruction: Multiply<" & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: Multiply<" & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
-proc multiply_long[signed, accumulate, set_cond: static bool](instr: Word) =
-  echo "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+proc multiply_long[signed, accumulate, set_cond: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
-proc single_data_swap[word: static bool](instr: Word) =
-  echo "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
+proc single_data_swap[word: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
 
-proc branch_exchange(instr: Word) =
-  echo "Unimplemented instruction: BranchExchange<>(0x" & instr.toHex(8) & ")"
+proc branch_exchange(gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: BranchExchange<>(0x" & instr.toHex(8) & ")"
 
-proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](instr: Word) =
-  echo "Unimplemented instruction: HalfwordDataTransfer<" & $pre & "," & $add & "," & $immediate & "," & $writeback & "," & $load & "," & $op & ">(0x" & instr.toHex(8) & ")"
+proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: HalfwordDataTransfer<" & $pre & "," & $add & "," & $immediate & "," & $writeback & "," & $load & "," & $op & ">(0x" & instr.toHex(8) & ")"
 
-proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](instr: Word) =
-  echo "Unimplemented instruction: SingleDataTransfer<" & $immediate & "," & $pre & "," & $add & "," & $word & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
+proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: SingleDataTransfer<" & $immediate & "," & $pre & "," & $add & "," & $word & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
 
-proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](instr: Word) =
-  echo "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
+proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
 
-proc branch[link: static bool](instr: Word) =
-  echo "Unimplemented instruction: Branch<" & $link & ">(0x" & instr.toHex(8) & ")"
+proc branch[link: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: Branch<" & $link & ">(0x" & instr.toHex(8) & ")"
 
-proc software_interrupt(instr: Word) =
-  echo "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
+proc software_interrupt(gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
 
-proc data_processing[immediate: static bool, op: static int, set_cond: static bool](instr: Word) =
-  echo "Unimplemented instruction: DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: Word) =
+  quit "Unimplemented instruction: DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
@@ -74,5 +73,5 @@ macro lutBuilder(): untyped =
 
 const lut* = lutBuilder()
 
-proc exec_arm*(instr: Word) =
-  lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](instr)
+proc exec_arm*(gba: GBA, instr: Word) =
+  lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)

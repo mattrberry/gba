@@ -14,4 +14,4 @@ proc readInstr(cpu: var CPU): Word =
 
 proc tick*(cpu: var CPU) =
   let instr = cpu.readInstr()
-  exec_arm(instr)
+  exec_arm(cpu.gba, instr)
