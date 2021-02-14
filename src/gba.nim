@@ -15,3 +15,4 @@ var
   gba = newGBA(paramStr(1), paramStr(2))
 
 gba.cpu.tick()
+gba.cpu.tick()

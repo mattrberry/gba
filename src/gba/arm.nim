@@ -1,6 +1,6 @@
 import bitops, strutils, std/macros
 
-import types
+import cpu, types
 
 proc unimplemented(gba: GBA, instr: Word) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
@@ -27,7 +27,10 @@ proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: 
   quit "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
 
 proc branch[link: static bool](gba: GBA, instr: Word) =
-  quit "Unimplemented instruction: Branch<" & $link & ">(0x" & instr.toHex(8) & ")"
+  var offset = instr.bitSliced(0..23)
+  if offset.testBit(23): offset = offset or 0xFF000000'u32
+  if link: gba.cpu.setReg(14, gba.cpu.r[15] - 4)
+  gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
 proc software_interrupt(gba: GBA, instr: Word) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
