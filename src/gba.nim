@@ -1,5 +1,23 @@
-import gba/arm
+import os, sequtils
 
-exec_arm(0xE3A0E102'u32)
-exec_arm(0xE18EE82E'u32)
-exec_arm(0xE58FE000'u32)
+import gba/[bus, cpu, types]
+
+if paramCount() != 2:
+  echo("Run with ./gba /path/to/bios /path/to/rom")
+  quit(1)
+
+proc readFileAsBytes(path: string): seq[uint8] =
+  var file = open(path)
+  result = newSeqWith(int(file.getFileSize()), 0'u8)
+  discard readBytes(file, result, 0, file.getFileSize())
+
+var
+  bios = readFileAsBytes(paramStr(1))
+  rom = readFileAsBytes(paramStr(2))
+
+var
+  gba = new GBA
+  busObj = newBus(gba, bios)
+  cpuObj = newCPU(gba)
+
+cpuObj.run()
