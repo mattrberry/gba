@@ -1,6 +1,10 @@
-import bitops, strutils, std/macros
+import bitops, strformat, strutils, std/macros
 
 import cpu, types
+
+proc immediateOffset(instr: Word, carry_out: ptr bool): Word =
+  # todo putting "false" here causes the gba-suite tests to pass, but _why_
+  result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carry_out)
 
 proc unimplemented(gba: GBA, instr: Word) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
@@ -36,7 +40,22 @@ proc software_interrupt(gba: GBA, instr: Word) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
 
 proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: Word) =
-  quit "Unimplemented instruction: DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+  var shifterCarryOut = gba.cpu.cpsr.carry
+  let
+    rn = instr.bitSliced(16..19)
+    rd = instr.bitSliced(12..15)
+    op2 = if immediate:
+            immediateOffset(instr.bitSliced(0..11), unsafeAddr shifterCarryOut)
+          else:
+            quit "RegisterRotation"
+  case op
+  of 0b1101: # mov
+    gba.cpu.setReg(rd, op2)
+    if set_cond:
+      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
+      gba.cpu.cpsr.carry = shifterCarryOut
+    if rd != 15: gba.cpu.stepArm()
+  else: quit "DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
