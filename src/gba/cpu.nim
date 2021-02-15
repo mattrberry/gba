@@ -5,8 +5,8 @@ import bus, types
 proc newCPU*(gba: GBA): CPU =
   new result
   result.gba = gba
-  result.cpsr = PSR(mode: Mode.usr)
-  result.spsr = PSR(mode: Mode.usr)
+  result.cpsr = PSR(mode: Mode.sys)
+  result.spsr = PSR(mode: Mode.sys)
   result.r[15] = 0x08000000
   result.r[15] += 8
 
@@ -34,16 +34,20 @@ proc setReg*(cpu: var CPU, reg: uint32, value: uint32) =
   cpu.r[reg] = value
   if reg == 15: cpu.clearPipeline
 
-proc ror*(word, bits: uint32, immediate: bool, carry_out: ptr bool): uint32 =
+proc lsl*(word, bits: uint32, carryOut: ptr bool): uint32 =
+  if bits == 0: return word
+  carryOut[] = word.testBit(32 - bits)
+  result = word shl bits
+
+proc ror*(word, bits: uint32, immediate: bool, carryOut: ptr bool): uint32 =
   if bits == 0: # RRX #1
     if not immediate: return word
-    quit "rrx immediate"
-    # carry_out[] = word.testBit(0)
-    # result = (word shr 1) or (@cpsr.carry.to_unsafe shl 31)
+    result = (word shr 1) or (uint32(carryOut[]) shl 31)
+    carryOut[] = word.testBit(0)
   else:
     var bits = bits and 31  # ROR by n where n is greater than 32 will give the same result and carry out as ROR by n-32
     if bits == 0: bits = 32 # ROR by 32 has result equal to Rm, carry out equal to bit 31 of Rm.
-    carry_out[] = word.testBit(bits - 1)
+    carryOut[] = word.testBit(bits - 1)
     result = (word shr bits) or (word shl (32 - bits))
 
 import arm

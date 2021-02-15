@@ -17,3 +17,5 @@ var
 gba.cpu.tick()
 gba.cpu.tick()
 gba.cpu.tick()
+gba.cpu.tick()
+gba.cpu.tick()

@@ -2,9 +2,20 @@ import bitops, strformat, strutils, std/macros
 
 import cpu, types
 
-proc immediateOffset(instr: uint32, carry_out: ptr bool): uint32 =
+proc immediateOffset(instr: uint32, carryOut: ptr bool): uint32 =
   # todo putting "false" here causes the gba-suite tests to pass, but _why_
-  result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carry_out)
+  result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carryOut)
+
+proc rotateRegister(cpu: CPU, instr: uint32, carryOut: ptr bool, allowRegisterShifts: bool): uint32 =
+  let
+    reg = instr.bitSliced(0..3)
+    shiftType = instr.bitSliced(5..6)
+    immediate = not(allowRegisterShifts and instr.testBit(4))
+    shiftAmount = if immediate: instr.bitSliced(7..11)
+                  else: cpu.r[instr.bitSliced(8..11)] and 0xFF
+  result = case shiftType
+           of 0b00: lsl(cpu.r[reg], shiftAmount, carryOut)
+           else: quit fmt"unimplemented shift type: {shiftType}"
 
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
@@ -47,7 +58,8 @@ proc data_processing[immediate: static bool, op: static int, set_cond: static bo
     op2 = if immediate:
             immediateOffset(instr.bitSliced(0..11), unsafeAddr shifterCarryOut)
           else:
-            quit "RegisterRotation"
+            rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, true)
+  echo fmt"op:#{op},op2:{op2},rn:{rn},rd:{rd}"
   case op
   of 0b1101: # mov
     gba.cpu.setReg(rd, op2)
