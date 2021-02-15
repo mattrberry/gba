@@ -10,12 +10,14 @@ proc newCPU*(gba: GBA): CPU =
   result.r[15] = 0x08000000
   result.r[15] += 8
 
-proc readInstr(cpu: var CPU): Word =
-  cpu.r[15].clearMask(3)
-  echo "Getting instruction from " & (cpu.r[15] - 8).toHex(8)
-  result = cpu.gba.bus.readWord(cpu.r[15] - 8)
+proc readInstr(cpu: var CPU): uint32 =
+  if cpu.cpsr.thumb:
+    quit "trying to read an instruction in thumb mode"
+  else:
+    cpu.r[15].clearMask(3)
+    result = cpu.gba.bus.readWord(cpu.r[15] - 8)
 
-proc setNegAndZeroFlags*(cpu: var CPU, value: Word) =
+proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
   cpu.cpsr.negative = value.testBit(31)
   cpu.cpsr.zero = value == 0
 
@@ -26,7 +28,7 @@ proc stepThumb*(cpu: var CPU) =
   cpu.r[15] += 2
 
 proc clearPipeline(cpu: var CPU) =
-  cpu.r[15] += 8
+  cpu.r[15] += (if cpu.cpsr.thumb: 4 else: 8)
 
 proc setReg*(cpu: var CPU, reg: uint32, value: uint32) =
   cpu.r[reg] = value
@@ -46,6 +48,18 @@ proc ror*(word, bits: uint32, immediate: bool, carry_out: ptr bool): uint32 =
 
 import arm
 
+proc printState(cpu: CPU, instr: uint32) =
+  for reg in 0 ..< cpu.r.len():
+    var val = cpu.r[reg]
+    if reg == 15: val -= (if cpu.cpsr.thumb: 2 else: 4)
+    stdout.write(val.toHex(8) & " ")
+  stdout.write("cpsr: " & cast[uint32](cpu.cpsr).toHex(8) & " | ")
+  if cpu.cpsr.thumb:
+    echo "    " & instr.toHex(4)
+  else:
+    echo instr.toHex(8)
+
 proc tick*(cpu: var CPU) =
   let instr = cpu.readInstr()
+  when defined(trace): printState(cpu, instr)
   exec_arm(cpu.gba, instr)

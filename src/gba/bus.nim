@@ -30,7 +30,7 @@ proc `[]`(bus: Bus, index: uint32): uint8 =
        0xC, 0xD: bus.rom[index and 0x01FFFFFF]
     else: quit "Unmapped read: " & index.toHex(8)
 
-proc readWord*(bus: Bus, index: uint32): Word =
+proc readWord*(bus: Bus, index: uint32): uint32 =
   let aligned = index.clearMasked(3)
   bus[aligned].uint32 or
     (bus[aligned + 1].uint32 shl 8) or

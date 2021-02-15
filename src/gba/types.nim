@@ -1,6 +1,5 @@
 type
-  Word* = uint32
-  Instruction* = proc(value: Word)
+  Instruction* = proc(value: uint32)
 
 type
   GBA* = ref object
@@ -16,7 +15,7 @@ type
 
   CPU* = ref object
     gba*: GBA
-    r*: array[16, Word]
+    r*: array[16, uint32]
     cpsr*: PSR
     spsr*: PSR
 

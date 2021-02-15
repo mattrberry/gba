@@ -2,44 +2,44 @@ import bitops, strformat, strutils, std/macros
 
 import cpu, types
 
-proc immediateOffset(instr: Word, carry_out: ptr bool): Word =
+proc immediateOffset(instr: uint32, carry_out: ptr bool): uint32 =
   # todo putting "false" here causes the gba-suite tests to pass, but _why_
   result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carry_out)
 
-proc unimplemented(gba: GBA, instr: Word) =
+proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
 
-proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: Word) =
+proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: Multiply<" & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
-proc multiply_long[signed, accumulate, set_cond: static bool](gba: GBA, instr: Word) =
+proc multiply_long[signed, accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
 
-proc single_data_swap[word: static bool](gba: GBA, instr: Word) =
+proc single_data_swap[word: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
 
-proc branch_exchange(gba: GBA, instr: Word) =
+proc branch_exchange(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: BranchExchange<>(0x" & instr.toHex(8) & ")"
 
-proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: Word) =
+proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: HalfwordDataTransfer<" & $pre & "," & $add & "," & $immediate & "," & $writeback & "," & $load & "," & $op & ">(0x" & instr.toHex(8) & ")"
 
-proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: Word) =
+proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataTransfer<" & $immediate & "," & $pre & "," & $add & "," & $word & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
 
-proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: Word) =
+proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
 
-proc branch[link: static bool](gba: GBA, instr: Word) =
+proc branch[link: static bool](gba: GBA, instr: uint32) =
   var offset = instr.bitSliced(0..23)
   if offset.testBit(23): offset = offset or 0xFF000000'u32
   if link: gba.cpu.setReg(14, gba.cpu.r[15] - 4)
   gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
-proc software_interrupt(gba: GBA, instr: Word) =
+proc software_interrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
 
-proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: Word) =
+proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitSliced(16..19)
@@ -95,5 +95,5 @@ macro lutBuilder(): untyped =
 
 const lut* = lutBuilder()
 
-proc exec_arm*(gba: GBA, instr: Word) =
+proc exec_arm*(gba: GBA, instr: uint32) =
   lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)
