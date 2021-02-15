@@ -2,13 +2,16 @@ import bitops, strutils
 
 import bus, types
 
+proc clearPipeline(cpu: var CPU)
+
 proc newCPU*(gba: GBA): CPU =
   new result
   result.gba = gba
   result.cpsr = PSR(mode: Mode.sys)
   result.spsr = PSR(mode: Mode.sys)
+  result.r[13] = 0x03007F00
   result.r[15] = 0x08000000
-  result.r[15] += 8
+  result.clearPipeline
 
 proc readInstr(cpu: var CPU): uint32 =
   if cpu.cpsr.thumb:

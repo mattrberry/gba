@@ -5,6 +5,7 @@ type
   GBA* = ref object
     bus*: Bus
     cpu*: CPU
+    ppu*: PPU
 
   Bus* = ref object
     gba*: GBA
@@ -18,6 +19,12 @@ type
     r*: array[16, uint32]
     cpsr*: PSR
     spsr*: PSR
+
+  PPU* = ref object
+    gba*: GBA
+    pram*: array[0x400, uint8]
+    vram*: array[0x18000, uint8]
+    oam*: array[0x400, uint8]
 
   Mode* = enum
     usr = 0b10000

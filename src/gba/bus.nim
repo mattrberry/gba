@@ -1,4 +1,6 @@
-import bitops, strutils, types
+import bitops, strutils
+
+import types
 
 proc newBus*(gba: GBA, bios: openarray[byte]): Bus =
   new result
@@ -25,6 +27,12 @@ proc `[]`*(bus: Bus, index: uint32): uint8 =
     of 0x0: bus.bios[index and 0x3FFF]
     of 0x2: bus.iwram[index and 0x3FFFF]
     of 0x3: bus.ewram[index and 0x7FFF]
+    of 0x5: bus.gba.ppu.pram[index and 0x3FF]
+    of 0x6:
+      var address = index and 0x1FFFF
+      if address > 0x17FFF: address -= 0x8000
+      bus.gba.ppu.vram[address]
+    of 0x7: bus.gba.ppu.oam[index and 0x3FF]
     of 0x8, 0x9,
        0xA, 0xB,
        0xC, 0xD: bus.rom[index and 0x01FFFFFF]
@@ -42,6 +50,12 @@ proc `[]=`*(bus: Bus, index: uint32, value: uint8) =
   of 0x2: bus.iwram[index and 0x3FFFF] = value
   of 0x3: bus.ewram[index and 0x7FFF] = value
   of 0x4: echo "Writing to I/O: " & index.toHex(8) & " ~> " & value.toHex(2)
+  of 0x5: bus.gba.ppu.pram[index and 0x3FF] = value
+  of 0x6:
+    var address = index and 0x1FFFF
+    if address > 0x17FFF: address -= 0x8000
+    bus.gba.ppu.vram[address] = value
+  of 0x7: bus.gba.ppu.oam[index and 0x3FF] = value
   else: quit "Unmapped write: " & index.toHex(8)
 
 proc `[]=`*(bus: Bus, index: uint32, value: uint16) =
