@@ -20,7 +20,7 @@ proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   close(biosFile)
   close(romFile)
 
-proc `[]`(bus: Bus, index: uint32): uint8 =
+proc `[]`*(bus: Bus, index: uint32): uint8 =
   result = case bitsliced(index, 24..27)
     of 0x0: bus.bios[index and 0x3FFF]
     of 0x2: bus.iwram[index and 0x3FFFF]
@@ -36,3 +36,15 @@ proc readWord*(bus: Bus, index: uint32): uint32 =
     (bus[aligned + 1].uint32 shl 8) or
     (bus[aligned + 2].uint32 shl 16) or
     (bus[aligned + 3].uint32 shl 24)
+
+proc `[]=`*(bus: Bus, index: uint32, value: uint8) =
+  case bitsliced(index, 24..27)
+  of 0x2: bus.iwram[index and 0x3FFFF] = value
+  of 0x3: bus.ewram[index and 0x7FFF] = value
+  of 0x4: echo "Writing to I/O: " & index.toHex(8) & " ~> " & value.toHex(2)
+  else: quit "Unmapped write: " & index.toHex(8)
+
+proc `[]=`*(bus: Bus, index: uint32, value: uint16) =
+  let aligned = index.clearMasked(1)
+  bus[aligned] = uint8(value)
+  bus[aligned + 1] = uint8(value shr 8)

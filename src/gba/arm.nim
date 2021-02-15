@@ -1,6 +1,6 @@
 import bitops, strformat, strutils, std/macros
 
-import cpu, types
+import bus, cpu, types
 
 proc immediateOffset(instr: uint32, carryOut: ptr bool): uint32 =
   # todo putting "false" here causes the gba-suite tests to pass, but _why_
@@ -33,7 +33,37 @@ proc branch_exchange(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: BranchExchange<>(0x" & instr.toHex(8) & ")"
 
 proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: HalfwordDataTransfer<" & $pre & "," & $add & "," & $immediate & "," & $writeback & "," & $load & "," & $op & ">(0x" & instr.toHex(8) & ")"
+  let
+    rn = instr.bitSliced(16..19)
+    rd = instr.bitSliced(12..15)
+    offset_high = instr.bitSliced(8..11)
+    rm = instr.bitSliced(0..3)
+    offset = if immediate: (offset_high shl 4) or rm
+             else: gba.cpu.r[rm]
+  var address = gba.cpu.r[rn]
+  if pre:
+    if add:
+      address += offset
+    else:
+      address -= offset
+  case op
+  of 0b01:
+    if load:
+      quit "load halfword"
+    else:
+      var value = gba.cpu.r[rd]
+      # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
+      # value will be address of the instruction plus 12.
+      if rd == 15: value += 4
+      gba.bus[address] = uint16(value) and 0xFFFF'u16
+  else: quit fmt"unhandled halfword transfer op: {op}"
+  if not pre:
+    if add:
+      address += offset
+    else:
+      address -= offset
+  if writeback: quit "implement writeback"
+  if rd != 15: gba.cpu.stepArm()
 
 proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataTransfer<" & $immediate & "," & $pre & "," & $add & "," & $word & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
@@ -59,7 +89,6 @@ proc data_processing[immediate: static bool, op: static int, set_cond: static bo
             immediateOffset(instr.bitSliced(0..11), unsafeAddr shifterCarryOut)
           else:
             rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, true)
-  echo fmt"op:#{op},op2:{op2},rn:{rn},rd:{rd}"
   case op
   of 0b0100: # add
     gba.cpu.setReg(rd, add(gba.cpu, gba.cpu.r[rn], op2, set_cond))
