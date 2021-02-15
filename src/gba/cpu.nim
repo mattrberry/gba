@@ -44,6 +44,13 @@ proc add*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
     cpu.cpsr.carry = result < op1
     cpu.cpsr.overflow = not((op1 xor op2) and (op2 xor result)).testBit(31)
 
+proc sub*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
+  result = op1 - op2
+  if setCond:
+    setNegAndZeroFlags(cpu, result)
+    cpu.cpsr.carry = op1 >= op2
+    cpu.cpsr.overflow = ((op1 xor op2) and (op1 xor result)).testBit(31)
+
 proc lsl*(word, bits: uint32, carryOut: ptr bool): uint32 =
   if bits == 0: return word
   carryOut[] = word.testBit(32 - bits)
