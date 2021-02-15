@@ -34,6 +34,13 @@ proc setReg*(cpu: var CPU, reg: uint32, value: uint32) =
   cpu.r[reg] = value
   if reg == 15: cpu.clearPipeline
 
+proc add*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
+  result = op1 + op2
+  if setCond:
+    setNegAndZeroFlags(cpu, result)
+    cpu.cpsr.carry = result < op1
+    cpu.cpsr.overflow = not((op1 xor op2) and (op2 xor result)).testBit(31)
+
 proc lsl*(word, bits: uint32, carryOut: ptr bool): uint32 =
   if bits == 0: return word
   carryOut[] = word.testBit(32 - bits)

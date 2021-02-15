@@ -61,6 +61,9 @@ proc data_processing[immediate: static bool, op: static int, set_cond: static bo
             rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, true)
   echo fmt"op:#{op},op2:{op2},rn:{rn},rd:{rd}"
   case op
+  of 0b0100: # add
+    gba.cpu.setReg(rd, add(gba.cpu, gba.cpu.r[rn], op2, set_cond))
+    if rd != 15: gba.cpu.stepArm()
   of 0b1101: # mov
     gba.cpu.setReg(rd, op2)
     if set_cond:
