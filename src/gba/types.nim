@@ -1,3 +1,5 @@
+import heapqueue
+
 type
   Instruction* = proc(value: uint32)
 
@@ -6,6 +8,7 @@ type
     bus*: Bus
     cpu*: CPU
     ppu*: PPU
+    scheduler*: Scheduler
 
   Bus* = ref object
     gba*: GBA
@@ -25,6 +28,27 @@ type
     pram*: array[0x400, uint8]
     vram*: array[0x18000, uint8]
     oam*: array[0x400, uint8]
+
+  Scheduler* = ref object
+    events*: HeapQueue[Event]
+    cycles*: uint64
+    nextEvent*: uint64
+
+  Event* = object
+    cycles*: uint64
+    callback*: proc()
+    eventType*: EventType
+
+  EventType* = enum
+    default
+    apuChannel1
+    apuChannel2
+    apuChannel3
+    apuChannel4
+    timer0
+    timer1
+    timer2
+    timer3
 
   Mode* = enum
     usr = 0b10000
