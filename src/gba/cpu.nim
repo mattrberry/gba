@@ -13,6 +13,25 @@ proc newCPU*(gba: GBA): CPU =
   result.r[15] = 0x08000000
   result.clearPipeline
 
+proc checkCond*(cpu: CPU, cond: uint32): bool =
+  result = case cond
+    of 0x0: cpu.cpsr.zero
+    of 0x1: not(cpu.cpsr.zero)
+    of 0x2: cpu.cpsr.carry
+    of 0x3: not(cpu.cpsr.carry)
+    of 0x4: cpu.cpsr.negative
+    of 0x5: not(cpu.cpsr.negative)
+    of 0x6: cpu.cpsr.overflow
+    of 0x7: not(cpu.cpsr.overflow)
+    of 0x8: cpu.cpsr.carry and not(cpu.cpsr.zero)
+    of 0x9: not(cpu.cpsr.carry) or cpu.cpsr.zero
+    of 0xA: cpu.cpsr.negative == cpu.cpsr.overflow
+    of 0xB: cpu.cpsr.negative != cpu.cpsr.overflow
+    of 0xC: not(cpu.cpsr.zero) and cpu.cpsr.negative == cpu.cpsr.overflow
+    of 0xD: cpu.cpsr.zero or cpu.cpsr.negative != cpu.cpsr.overflow
+    of 0xE: true
+    else: quit "Cond 0xF is reserved"
+
 proc readInstr(cpu: var CPU): uint32 =
   if cpu.cpsr.thumb:
     quit "trying to read an instruction in thumb mode"

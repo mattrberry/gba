@@ -143,4 +143,7 @@ macro lutBuilder(): untyped =
 const lut* = lutBuilder()
 
 proc exec_arm*(gba: GBA, instr: uint32) =
-  lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)
+  if gba.cpu.checkCond(instr.bitSliced(28..31)):
+    lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)
+  else:
+    gba.cpu.stepArm()
