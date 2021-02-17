@@ -7,8 +7,10 @@ license       = "MIT"
 srcDir        = "src"
 bin           = @["gba"]
 
-
 # Dependencies
 
 requires "nim >= 1.4.0"
 requires "sdl2 >= 1.0"
+
+task wasm, "wasm":
+  exec "nim c -d:emscripten -d:wasm -d:release src/gba.nim"

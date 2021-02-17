@@ -16,8 +16,32 @@ proc runFrame(gba: GBA) =
     gba.cpu.tick()
     gba.scheduler.tick(1)
 
+proc checkKeyInput(gba: GBA) =
+  var event = sdl2.defaultEvent
+  while pollEvent(event):
+    case event.kind
+    of QuitEvent:
+      quit "quit event"
+    of KeyDown, KeyUp:
+      let key = cast[KeyboardEventObj](event)
+      case key.keysym.scancode
+      of SDL_SCANCODE_E: echo "up"
+      of SDL_SCANCODE_D: echo "down"
+      of SDL_SCANCODE_S: echo "left"
+      of SDL_SCANCODE_F: echo "right"
+      of SDL_SCANCODE_W: echo "l"
+      of SDL_SCANCODE_R: echo "r"
+      of SDL_SCANCODE_J: echo "b"
+      of SDL_SCANCODE_K: echo "a"
+      of SDL_SCANCODE_L: echo "select"
+      of SDL_SCANCODE_SEMICOLON: echo "start"
+      of SDL_SCANCODE_Q: quit "quit q"
+      else: discard
+    else: discard
+
 proc loop(gba: GBA) {.cdecl.} =
   runFrame(gba)
+  checkKeyInput(gba)
 
 discard sdl2.init(INIT_EVERYTHING)
 
