@@ -38,12 +38,28 @@ proc `[]`*(bus: Bus, index: uint32): uint8 =
        0xC, 0xD: bus.rom[index and 0x01FFFFFF]
     else: quit "Unmapped read: " & index.toHex(8)
 
+proc readWordSlow(bus: Bus, index: uint32): uint32 =
+  bus[index].uint32 or
+    (bus[index + 1].uint32 shl 8) or
+    (bus[index + 2].uint32 shl 16) or
+    (bus[index + 3].uint32 shl 24)
+
 proc readWord*(bus: Bus, index: uint32): uint32 =
   let aligned = index.clearMasked(3)
-  bus[aligned].uint32 or
-    (bus[aligned + 1].uint32 shl 8) or
-    (bus[aligned + 2].uint32 shl 16) or
-    (bus[aligned + 3].uint32 shl 24)
+  result = case index.bitsliced(24..27)
+    of 0x0: cast[ptr uint32](addr bus.bios[aligned and 0x3FFF])[]
+    of 0x2: cast[ptr uint32](addr bus.iwram[aligned and 0x3FFFF])[]
+    of 0x3: cast[ptr uint32](addr bus.ewram[index and 0x7FFF])[]
+    of 0x5: cast[ptr uint32](addr bus.gba.ppu.pram[aligned and 0x3FF])[]
+    of 0x6:
+      var address = aligned and 0x1FFFF
+      if address > 0x17FFF: address -= 0x8000
+      cast[ptr uint32](addr bus.gba.ppu.vram[address])[]
+    of 0x7: cast[ptr uint32](addr bus.gba.ppu.oam[aligned and 0x3FF])[]
+    of 0x8, 0x9,
+       0xA, 0xB,
+       0xC, 0xD: cast[ptr uint32](addr bus.rom[aligned and 0x01FFFFFF])[]
+    else: quit "Unmapped read: " & aligned.toHex(8)
 
 proc `[]=`*(bus: Bus, index: uint32, value: uint8) =
   case bitsliced(index, 24..27)
