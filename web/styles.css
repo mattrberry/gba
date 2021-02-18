@@ -1,0 +1,8 @@
+body {
+    margin: 0;
+}
+
+#canvas {
+    width: 960px;
+    max-width: 100%;
+}
