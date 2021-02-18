@@ -1,4 +1,4 @@
-import times
+import strformat, times
 import sdl2
 
 const
@@ -16,6 +16,9 @@ type
     lastTime: DateTime
     seconds: int
 
+when defined(emscripten):
+  proc emscripten_run_script(script: cstring) {.header: "<emscripten.h>".}
+
 proc newDisplay*(): Display =
   new result
   result.window = createWindow("gba", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH * SCALE, HEIGHT * SCALE, SDL_WINDOW_SHOWN)
@@ -32,7 +35,10 @@ proc updateDrawCount(display: Display) =
   display.frames += 1
   if currentTime.second != display.seconds:
     let fps = display.frames * 1_000_000 / display.microseconds
-    echo fps
+    when defined(emscripten):
+      emscripten_run_script(fmt"reportFps({fps:.2f})")
+    else:
+      display.window.setTitle(fmt"gba - {fps:.2f}")
     display.microseconds = 0
     display.frames = 0
     display.seconds = currentTime.second

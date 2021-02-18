@@ -1,3 +1,9 @@
+const Button = {
+    UP: 69, DOWN: 68, LEFT: 83, RIGHT: 70,
+    L: 87, R: 82, B: 74, A: 75,
+    SELECT: 76, START: 186
+}
+
 const readToEmscriptenFileSystem = (filename, filter = "") => {
     return new Promise((resolve, reject) => {
         let input = document.createElement("input");
@@ -20,12 +26,33 @@ const readToEmscriptenFileSystem = (filename, filter = "") => {
     });
 };
 
+const pressButton = keyCode => {
+    let eventObj = document.createEventObject ? document.createEventObject() : document.createEvent("Events");
+
+    if (eventObj.initEvent) {
+        eventObj.initEvent("keydown", true, true);
+    }
+
+    eventObj.keyCode = keyCode;
+    eventObj.which = keyCode;
+
+    document.dispatchEvent ? document.dispatchEvent(eventObj) : document.fireEvent("onkeydown", eventObj);
+}
+
+const reportFps = fps => {
+    let element = document.getElementById("fps");
+    element.innerHTML = `FPS: ${fps}`;
+}
+
 document.getElementById("open-bios").addEventListener("click",
     () => readToEmscriptenFileSystem("bios.bin"));
 
 document.getElementById("open-rom").addEventListener("click",
     () => readToEmscriptenFileSystem("rom.gba", ".gba").then(
         () => Module.ccall('initFromEmscripten', null, [], [])));
+
+document.getElementById("select").addEventListener("click",
+    () => pressButton(Button.SELECT));
 
 var Module = {
     print: (() => {
