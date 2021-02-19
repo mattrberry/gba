@@ -85,6 +85,14 @@ document.getElementById("dpad").addEventListener("touchmove", event => {
     }
 });
 
+document.querySelectorAll("#ab div").forEach(element => element.addEventListener("touchstart", event => {
+    pressButton(element.getAttribute("button"), true);
+}));
+
+document.querySelectorAll("#ab div").forEach(element => element.addEventListener("touchend", event => {
+    pressButton(element.getAttribute("button"), false);
+}));
+
 var Module = {
     print: (() => {
         let element = document.getElementById('output');

@@ -12,12 +12,18 @@ body {
     display: inline;
 }
 
+#controls {
+    width: 100%;
+}
+
 #dpad {
     width: 150px;
     height: 150px;
     display: grid;
     grid-template-columns: auto auto auto;
     grid-template-rows: auto auto auto;
+    float: left;
+    padding-left: 20px;
 }
 
 #dpad div {
@@ -50,4 +56,30 @@ body {
     grid-column-end: 3;
     grid-row-start: 3;
     grid-row-end: 4;
+}
+
+#ab {
+    margin-left: 150px;
+    height: 150px;
+}
+
+#a, #b {
+    width: 50px;
+    height: 50px;
+    background-color: #eee;
+    text-align: center;
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    float: right;
+    right: 40px;
+    margin-left: 10px;
+}
+
+#a {
+    top: 22%;
+}
+
+#b {
+    top: 44%;
 }
