@@ -66,7 +66,34 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
   if rd != 15: gba.cpu.stepArm()
 
 proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: SingleDataTransfer<" & $immediate & "," & $pre & "," & $add & "," & $word & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
+  var shifterCarryOut = gba.cpu.cpsr.carry
+  let
+    rn = instr.bitSliced(16..19)
+    rd = instr.bitsliced(12..15)
+    offset = if immediate: rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, false)
+             else: instr.bitSliced(0..11)
+  var address = gba.cpu.r[rn]
+  if pre:
+    if add:
+      address += offset
+    else:
+      address -= offset
+  if load:
+    quit "load"
+  else:
+    var value = gba.cpu.r[rd]
+    # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
+    # value will be address of the instruction plus 12.
+    if rd == 15: value += 4
+    if word: value = value and 0xFF'u8
+    gba.bus[address] = value
+  if not pre:
+    if add:
+      address += offset
+    else:
+      address -= offset
+  if writeback: quit "implement writeback"
+  if rd != 15: gba.cpu.stepArm()
 
 proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"

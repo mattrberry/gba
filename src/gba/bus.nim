@@ -78,3 +78,10 @@ proc `[]=`*(bus: Bus, index: uint32, value: uint16) =
   let aligned = index.clearMasked(1)
   bus[aligned] = uint8(value)
   bus[aligned + 1] = uint8(value shr 8)
+
+proc `[]=`*(bus: Bus, index: uint32, value: uint32) =
+  let aligned = index.clearMasked(1)
+  bus[aligned] = uint8(value)
+  bus[aligned + 1] = uint8(value shr 8)
+  bus[aligned + 2] = uint8(value shr 16)
+  bus[aligned + 3] = uint8(value shr 24)
