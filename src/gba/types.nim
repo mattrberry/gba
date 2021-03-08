@@ -9,8 +9,16 @@ type
   GBA* = ref object
     bus*: Bus
     display*: Display
+    apu*: APU
     cpu*: CPU
     ppu*: PPU
+    scheduler*: Scheduler
+
+  APU* = ref object
+    gba*: GBA
+    channel1*: Channel
+
+  Channel* = ref object of RootObj
     scheduler*: Scheduler
 
   Bus* = ref object
@@ -47,6 +55,7 @@ type
   EventType* = enum
     default
     ppu
+    apu
     apuChannel1
     apuChannel2
     apuChannel3

@@ -1,11 +1,12 @@
 import os
 import sdl2
 
-import gba/[bus, cpu, display, ppu, scheduler, types]
+import gba/[apu, bus, cpu, display, ppu, scheduler, types]
 
 proc newGBA(bios, rom: string): GBA =
   new result
   result.scheduler = newScheduler()
+  result.apu = newAPU(result)
   result.bus = newBus(result, bios, rom)
   result.display = newDisplay()
   result.cpu = newCPU(result)
@@ -52,7 +53,7 @@ when defined(emscripten):
   proc emscripten_cancel_main_loop() {.header: "<emscripten.h>".}
   proc initFromEmscripten() {.exportc.} =
     var gba = newGBA("bios.bin", "rom.gba")
-    emscripten_set_main_loop_arg(cast[em_arg_callback_func](loop), cast[pointer](gba), -1, 1)
+    emscripten_set_main_loop_arg(cast[em_arg_callback_func](loop), cast[pointer](gba), 60, 1)
 else:
   if paramCount() != 2: quit "Run with ./gba /path/to/bios /path/to/rom"
   var gba = newGBA(paramStr(1), paramStr(2))
