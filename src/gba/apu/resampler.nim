@@ -13,7 +13,6 @@ proc newResampler*[T](output: seq[T]): Resampler[T] =
   result.output = output
 
 proc setFreqs*[T](resampler: var Resampler[T], inputFreq, outputFreq: int) =
-  echo "input freq: " & $inputFreq & ", output freq: " & $outputFreq & ", ratio: " & $resampler.ratio & " -> " & $float32(inputFreq / outputFreq)
   resampler.ratio = float32(inputFreq / outputFreq)
 
 proc reset*[T](resampler: var Resampler[T], inputFreq, outputFreq: int) =

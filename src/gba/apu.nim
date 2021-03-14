@@ -7,15 +7,15 @@ import apu/[resampler, channel1]
 const
   cpuClock = 2 ^ 24
   channels = 1 # Left / Right
-  bufferSize = 1024
+  bufferSize = 1024 * 8
   sampleRate = 32768 # Hz
   samplePeriod = cpuClock div sampleRate
   frameSequencerRate = 512 # Hz
   frameSequencerPeriod = cpuClock div frameSequencerRate
 
+  freqDelta = 0.002
+
 var
-  buffer: array[bufferSize, float32]
-  bufferPos: int
   frameSequencerStage = 0
 
   audioSpec: AudioSpec
@@ -23,9 +23,9 @@ var
 
   dev: AudioDeviceID
 
-  buf = newSeq[float32]()
-  resample = newResampler[float32](buf)
-
+  bufferPos: int
+  buffer = newSeq[float32]()
+  resample = newResampler[float32](buffer)
   lastFreq = sampleRate
 
 proc getSample(apu: APU): proc()
@@ -55,19 +55,13 @@ proc newAPU*(gba: GBA): APU =
 proc getSample(apu: APU): proc() = (proc() =
   apu.gba.scheduler.schedule(samplePeriod, apu.getSample(), EventType.apu)
   let channel1Amp = cast[Channel1](apu.channel1).getAmplitude()
-  buffer[bufferPos] = channel1Amp
   bufferPos += 1
   resample.write(channel1Amp)
 
   if bufferPos >= bufferSize:
-    # echo "Remaining queue: " & $getQueuedAudioSize(dev) & ", pushing: " & $(resample.output.len * sizeof(float32))
     when defined(emscripten):
-      let
-        maxDelta = 0.005
-        fillLevel = getQueuedAudioSize(dev)
-        # newFreq = int(((1.0 - maxDelta) + 2.0 * float(fillLevel) * maxDelta) * float(obtainedSpec.freq))
-        newFreq = int((float(fillLevel) / bufferSize) * float(lastFreq))
-      lastFreq = min(max(lastFreq - 10, newFreq), lastFreq + 10)
+      let fillLevel = getQueuedAudioSize(dev)
+      lastFreq = int((1 + (int(2 * (int(fillLevel) div sizeof(float32)) - bufferSize) / bufferSize) * freqDelta) * float(lastFreq))
       resample.setFreqs(lastFreq, obtainedSpec.freq)
     else:
       while getQueuedAudioSize(dev) > bufferSize * sizeof(float32) * 2:

@@ -53,7 +53,7 @@ when defined(emscripten):
   proc emscripten_cancel_main_loop() {.header: "<emscripten.h>".}
   proc initFromEmscripten() {.exportc.} =
     var gba = newGBA("bios.bin", "rom.gba")
-    emscripten_set_main_loop_arg(cast[em_arg_callback_func](loop), cast[pointer](gba), 60, 1)
+    emscripten_set_main_loop_arg(cast[em_arg_callback_func](loop), cast[pointer](gba), -1, 1)
 else:
   if paramCount() != 2: quit "Run with ./gba /path/to/bios /path/to/rom"
   var gba = newGBA(paramStr(1), paramStr(2))
