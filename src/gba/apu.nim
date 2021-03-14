@@ -34,23 +34,24 @@ proc tickFrameSequencer(apu: APU): proc()
 proc newAPU*(gba: GBA): APU =
   new result
   result.gba = gba
-  result.channel1 = newChannel1(gba.scheduler)
-  cast[Channel1](result.channel1).trigger()
+  # todo: enable and touch up the apu
+  # result.channel1 = newChannel1(gba.scheduler)
+  # cast[Channel1](result.channel1).trigger()
 
-  audioSpec.freq = sampleRate
-  audioSpec.format = AUDIO_F32
-  audioSpec.channels = channels
-  audioSpec.samples = bufferSize
-  audioSpec.callback = nil
-  audioSpec.userdata = nil
+  # audioSpec.freq = sampleRate
+  # audioSpec.format = AUDIO_F32
+  # audioSpec.channels = channels
+  # audioSpec.samples = bufferSize
+  # audioSpec.callback = nil
+  # audioSpec.userdata = nil
 
-  dev = openAudioDevice(nil, 0, addr audioSpec, addr obtainedSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
-  pauseAudioDevice(dev, 0)
+  # dev = openAudioDevice(nil, 0, addr audioSpec, addr obtainedSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
+  # pauseAudioDevice(dev, 0)
 
-  resample.setFreqs(sampleRate, obtainedSpec.freq)
+  # resample.setFreqs(sampleRate, obtainedSpec.freq)
 
-  gba.scheduler.schedule(samplePeriod, result.getSample(), EventType.apu)
-  gba.scheduler.schedule(frameSequencerPeriod, result.tickFrameSequencer(), EventType.apu)
+  # gba.scheduler.schedule(samplePeriod, result.getSample(), EventType.apu)
+  # gba.scheduler.schedule(frameSequencerPeriod, result.tickFrameSequencer(), EventType.apu)
 
 proc getSample(apu: APU): proc() = (proc() =
   apu.gba.scheduler.schedule(samplePeriod, apu.getSample(), EventType.apu)
