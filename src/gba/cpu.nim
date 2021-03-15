@@ -1,6 +1,21 @@
-import bitops, strutils
+import algorithm, bitops, strutils
 
 import bus, types
+
+proc value(psr: PSR): uint32 = cast[uint32](psr)
+proc bank(mode: Mode): int =
+  case mode
+    of sys, usr: 0
+    of fiq: 1
+    of svc: 2
+    of abt: 3
+    of irq: 4
+    of und: 5
+
+var
+  bankedRegs: array[6, array[7, uint32]]
+  bankedSpsr: array[6, PSR]
+fill(bankedSpsr, PSR(mode: Mode.sys))
 
 proc clearPipeline(cpu: var CPU)
 
@@ -9,7 +24,10 @@ proc newCPU*(gba: GBA): CPU =
   result.gba = gba
   result.cpsr = PSR(mode: Mode.sys)
   result.spsr = PSR(mode: Mode.sys)
-  result.r[13] = 0x03007F00
+  bankedRegs[Mode.usr.bank][5] = 0x03007F00
+  bankedRegs[Mode.irq.bank][5] = 0x03007FA0
+  bankedRegs[Mode.svc.bank][5] = 0x03007FE0
+  result.r[13] = bankedRegs[Mode.usr.bank][5]
   result.r[15] = 0x08000000
   result.clearPipeline
 
@@ -38,6 +56,23 @@ proc readInstr(cpu: var CPU): uint32 =
   else:
     cpu.r[15].clearMask(3)
     result = cpu.gba.bus.readWord(cpu.r[15] - 8)
+
+proc `mode=`*(cpu: CPU, mode: Mode) =
+  let
+    oldBank = cpu.cpsr.mode.bank
+    newBank = mode.bank
+  if oldBank == newBank: return
+  if mode == Mode.fiq or cpu.cpsr.mode == Mode.fiq:
+    for i in 0..<5:
+      bankedRegs[oldBank][i] = cpu.r[8 + i]
+      cpu.r[8 + i] = bankedRegs[newBank][i]
+  bankedRegs[oldBank][5] = cpu.r[13]
+  bankedRegs[oldBank][6] = cpu.r[14]
+  bankedSpsr[oldBank] = cpu.spsr
+  cpu.r[13] = bankedRegs[newBank][5]
+  cpu.r[14] = bankedRegs[newBank][6]
+  cpu.spsr = cpu.cpsr
+  cpu.cpsr.mode = mode
 
 proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
   cpu.cpsr.negative = value.testBit(31)

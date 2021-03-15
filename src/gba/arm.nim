@@ -17,6 +17,8 @@ proc rotateRegister(cpu: CPU, instr: uint32, carryOut: ptr bool, allowRegisterSh
            of 0b00: lsl(cpu.r[reg], shiftAmount, carryOut)
            else: quit fmt"unimplemented shift type: {shiftType}"
 
+converter psrToU32(psr: PSR): uint32 = cast[uint32](psr)
+
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
 
@@ -107,6 +109,35 @@ proc branch[link: static bool](gba: GBA, instr: uint32) =
 proc software_interrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
 
+proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) =
+  let
+    rd = instr.bitsliced(12..15)
+    mode = gba.cpu.cpsr.mode
+    hasSpsr = mode != Mode.sys and mode != Mode.usr
+  if msr:
+    var mask = 0x00000000'u32
+    if instr.testBit(19): mask = mask or 0xFF000000'u32
+    if instr.testBit(16): mask = mask or 0x000000FF'u32
+    if not(spsr) and mode == Mode.usr: mask = mask and 0x000000FF'u32
+    var
+      barrelOut: bool
+      value = if immediate: immediateOffset(instr.bitSliced(0..11), unsafeAddr barrelOut)
+              else: gba.cpu.r[instr.bitsliced(0..3)]
+    value = value and mask
+    if spsr:
+      if hasSpsr:
+        gba.cpu.spsr = cast[PSR]((cast[uint32](gba.cpu.spsr) and not(mask)) or value)
+    else:
+      let thumb = gba.cpu.cpsr.thumb
+      if instr.testBit(16): gba.cpu.mode = Mode(value and 0x1F)
+      gba.cpu.cpsr = cast[PSR]((cast[uint32](gba.cpu.cpsr) and not(mask)) or value)
+      gba.cpu.cpsr.thumb = thumb
+  else:
+    let value = if spsr and hasSpsr: gba.cpu.spsr
+                else: gba.cpu.cpsr
+    gba.cpu.setReg(rd, value)
+  if not(not(msr) and rd == 15): gba.cpu.stepArm()
+
 proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
@@ -162,6 +193,8 @@ macro lutBuilder(): untyped =
       result.add newNilLit() # coprocessor register transfer
     elif (i and 0b111100000000) == 0b111100000000:
       result.add bindSym"software_interrupt"
+    elif (i and 0b110110010000) == 0b000100000000:
+      result.add newTree(nnkBracketExpr, bindSym"status_transfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
       result.add newTree(nnkBracketExpr, bindSym"data_processing", i.testBit(9).newLit(), newLit((i shr 5) and 0xF), i.testBit(4).newLit())
     else:
