@@ -76,12 +76,12 @@ proc single_data_transfer[immediate, pre, add, word, writeback, load: static boo
              else: instr.bitSliced(0..11)
   var address = gba.cpu.r[rn]
   if pre:
-    if add:
-      address += offset
-    else:
-      address -= offset
+    if add: address += offset
+    else: address -= offset
   if load:
-    quit "load"
+    let value = if word: gba.bus[address].uint32
+                else: gba.bus.readWordRotate(address)
+    gba.cpu.setReg(rd, value)
   else:
     var value = gba.cpu.r[rd]
     # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
@@ -90,10 +90,8 @@ proc single_data_transfer[immediate, pre, add, word, writeback, load: static boo
     if word: value = value and 0xFF'u8
     gba.bus[address] = value
   if not pre:
-    if add:
-      address += offset
-    else:
-      address -= offset
+    if add: address += offset
+    else: address -= offset
   if writeback: quit "implement writeback"
   if rd != 15: gba.cpu.stepArm()
 

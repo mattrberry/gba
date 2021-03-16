@@ -61,6 +61,12 @@ proc readWord*(bus: Bus, index: uint32): uint32 =
        0xC, 0xD: cast[ptr uint32](addr bus.rom[aligned and 0x01FFFFFF])[]
     else: quit "Unmapped read: " & aligned.toHex(8)
 
+proc readWordRotate*(bus: Bus, index: uint32): uint32 =
+  let
+    word = bus.readWord(index)
+    bits = (index and 3) shl 3
+  result = (word shr bits) or (word shl (32 - bits))
+
 proc `[]=`*(bus: Bus, index: uint32, value: uint8) =
   case bitsliced(index, 24..27)
   of 0x2: bus.iwram[index and 0x3FFFF] = value
