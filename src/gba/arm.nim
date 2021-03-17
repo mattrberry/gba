@@ -32,7 +32,9 @@ proc single_data_swap[word: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
 
 proc branch_exchange(gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: BranchExchange<>(0x" & instr.toHex(8) & ")"
+  let address = gba.cpu.r[instr.bitsliced(0..3)]
+  gba.cpu.cpsr.thumb = bool(address and 1)
+  gba.cpu.setReg(15, address)
 
 proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: uint32) =
   let
