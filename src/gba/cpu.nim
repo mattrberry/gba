@@ -52,7 +52,8 @@ proc checkCond*(cpu: CPU, cond: uint32): bool =
 
 proc readInstr(cpu: var CPU): uint32 =
   if cpu.cpsr.thumb:
-    quit "trying to read an instruction in thumb mode"
+    cpu.r[15].clearMask(1)
+    result = cpu.gba.bus.readHalf(cpu.r[15] - 4).uint32
   else:
     cpu.r[15].clearMask(3)
     result = cpu.gba.bus.readWord(cpu.r[15] - 8)
@@ -74,10 +75,6 @@ proc `mode=`*(cpu: CPU, mode: Mode) =
   cpu.spsr = cpu.cpsr
   cpu.cpsr.mode = mode
 
-proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
-  cpu.cpsr.negative = value.testBit(31)
-  cpu.cpsr.zero = value == 0
-
 proc stepArm*(cpu: var CPU) =
   cpu.r[15] += 4
 
@@ -90,6 +87,10 @@ proc clearPipeline(cpu: var CPU) =
 proc setReg*(cpu: var CPU, reg: uint32, value: uint32) =
   cpu.r[reg] = value
   if reg == 15: cpu.clearPipeline
+
+proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
+  cpu.cpsr.negative = value.testBit(31)
+  cpu.cpsr.zero = value == 0
 
 proc add*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
   result = op1 + op2
@@ -121,7 +122,7 @@ proc ror*(word, bits: uint32, immediate: bool, carryOut: ptr bool): uint32 =
     carryOut[] = word.testBit(bits - 1)
     result = (word shr bits) or (word shl (32 - bits))
 
-import arm
+import arm, thumb
 
 proc printState(cpu: CPU, instr: uint32) =
   for reg in 0 ..< cpu.r.len():
@@ -137,4 +138,7 @@ proc printState(cpu: CPU, instr: uint32) =
 proc tick*(cpu: var CPU) =
   let instr = cpu.readInstr()
   when defined(trace): printState(cpu, instr)
-  exec_arm(cpu.gba, instr)
+  if cpu.cpsr.thumb:
+    execThumb(cpu.gba, instr)
+  else:
+    execArm(cpu.gba, instr)

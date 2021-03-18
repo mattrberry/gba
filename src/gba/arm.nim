@@ -200,9 +200,9 @@ macro lutBuilder(): untyped =
     else:
       result.add bindSym"unimplemented"
 
-const lut* = lutBuilder()
+const lut = lutBuilder()
 
-proc exec_arm*(gba: GBA, instr: uint32) =
+proc execArm*(gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(instr.bitSliced(28..31)):
     lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)
   else:
