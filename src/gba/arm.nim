@@ -2,11 +2,11 @@ import bitops, strformat, strutils, std/macros
 
 import bus, cpu, types
 
-proc immediateOffset(instr: uint32, carryOut: ptr bool): uint32 =
+proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
   # todo putting "false" here causes the gba-suite tests to pass, but _why_
   result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carryOut)
 
-proc rotateRegister(cpu: CPU, instr: uint32, carryOut: ptr bool, allowRegisterShifts: bool): uint32 =
+proc rotateRegister(cpu: CPU, instr: uint32, carryOut: var bool, allowRegisterShifts: bool): uint32 =
   let
     reg = instr.bitSliced(0..3)
     shiftType = instr.bitSliced(5..6)
@@ -74,7 +74,7 @@ proc single_data_transfer[immediate, pre, add, word, writeback, load: static boo
   let
     rn = instr.bitSliced(16..19)
     rd = instr.bitsliced(12..15)
-    offset = if immediate: rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, false)
+    offset = if immediate: rotateRegister(gba.cpu, instr.bitSliced(0..11), shifterCarryOut, false)
              else: instr.bitSliced(0..11)
   var address = gba.cpu.r[rn]
   if pre:
@@ -121,7 +121,7 @@ proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32)
     if not(spsr) and mode == Mode.usr: mask = mask and 0x000000FF'u32
     var
       barrelOut: bool
-      value = if immediate: immediateOffset(instr.bitSliced(0..11), unsafeAddr barrelOut)
+      value = if immediate: immediateOffset(instr.bitSliced(0..11), barrelOut)
               else: gba.cpu.r[instr.bitsliced(0..3)]
     value = value and mask
     if spsr:
@@ -144,9 +144,9 @@ proc data_processing[immediate: static bool, op: static int, set_cond: static bo
     rn = instr.bitSliced(16..19)
     rd = instr.bitSliced(12..15)
     op2 = if immediate:
-            immediateOffset(instr.bitSliced(0..11), unsafeAddr shifterCarryOut)
+            immediateOffset(instr.bitSliced(0..11), shifterCarryOut)
           else:
-            rotateRegister(gba.cpu, instr.bitSliced(0..11), unsafeAddr shifterCarryOut, true)
+            rotateRegister(gba.cpu, instr.bitSliced(0..11), shifterCarryOut, true)
   case op
   of 0b0100: # add
     gba.cpu.setReg(rd, gba.cpu.add(gba.cpu.r[rn], op2, set_cond))

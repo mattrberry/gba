@@ -62,7 +62,19 @@ proc addSubtract[immediate, sub: static bool, offset: static int](gba: GBA, inst
   quit "Unimplemented instruction: AddSubtract<" & $immediate & "," & $sub & "," & $offset & ">(0x" & instr.toHex(4) & ")"
 
 proc moveShiftedReg[op, offset: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: MoveShiftedRegister<" & $op & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  var shifterCarryOut = gba.cpu.cpsr.carry
+  let
+    rs = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+    value = case op
+      of 0b00: lsl(gba.cpu.r[rs], offset, shifterCarryOut)
+      of 0b01: lsr(gba.cpu.r[rs], offset, shifterCarryOut)
+      of 0b10: asr(gba.cpu.r[rs], offset, shifterCarryOut)
+      else: quit "Unimplemented instruction: MoveShiftedRegister<" & $op & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  gba.cpu.r[rd] = value
+  gba.cpu.cpsr.carry = shifterCarryOut
+  gba.cpu.setNegAndZeroFlags(value)
+  gba.cpu.stepThumb()
 
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
