@@ -1,6 +1,6 @@
 import bitops, strutils, std/macros
 
-import types
+import bus, cpu, types
 
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
@@ -45,7 +45,9 @@ proc loadStoreRegOffset[lb, ro: static int](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreRegOffset<" & $lb & "," & $ro & ">(0x" & instr.toHex(4) & ")"
 
 proc pcRelativeLoad[rd: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: PcRelativeLoad<" & $rd & ">(0x" & instr.toHex(4) & ")"
+  let immediate = instr.bitsliced(0..7) shl 2
+  gba.cpu.r[rd] = gba.bus.readWord((gba.cpu.r[15] and not(2'u32)) + immediate)
+  gba.cpu.stepThumb()
 
 proc highRegOps[op: static int, h1, h2: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: PcRelativeLoad<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
