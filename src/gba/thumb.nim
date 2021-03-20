@@ -21,14 +21,14 @@ proc unconditionalBranch(gba: GBA, instr: uint32) =
 proc softwareInterrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(4) & ")"
 
-proc conditionalBranch[cond: static int](gba: GBA, instr: uint32) =
+proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(cond):
     let offset = cast[uint32](int32(instr.bitsliced(0..7) * 2))
     gba.cpu.setReg(15, gba.cpu.r[15] + offset)
   else:
     gba.cpu.stepThumb()
 
-proc multipleLoadStore[load: static bool, rb: static int](gba: GBA, instr: uint32) =
+proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: MultipleLoadStore<" & $load & "," & $rb & ">(0x" & instr.toHex(4) & ")"
 
 proc pushPop[load, pclr: static bool](gba: GBA, instr: uint32) =
@@ -37,33 +37,33 @@ proc pushPop[load, pclr: static bool](gba: GBA, instr: uint32) =
 proc addToStackPointer[negative: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: AddToStackPointer<" & $negative & ">(0x" & instr.toHex(4) & ")"
 
-proc loadAddress[sp: static bool, rd: static int](gba: GBA, instr: uint32) =
+proc loadAddress[sp: static bool, rd: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadAddress<" & $sp & "," & $rd & ">(0x" & instr.toHex(4) & ")"
 
-proc spRelativeLoadStore[load: static bool, rd: static int](gba: GBA, instr: uint32) =
+proc spRelativeLoadStore[load: static bool, rd: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SpRelativeLoadStore<" & $load & "," & $rd & ">(0x" & instr.toHex(4) & ")"
 
-proc loadStoreHalfword[load: static bool, offset: static int](gba: GBA, instr: uint32) =
+proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreHalfword<" & $load & "," & $offset & ">(0x" & instr.toHex(4) & ")"
 
-proc loadStoreImmOffset[bl, offset: static int](gba: GBA, instr: uint32) =
+proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreImmOffset<" & $bl & "," & $offset & ">(0x" & instr.toHex(4) & ")"
 
-proc loadStoreSignExtended[hs, ro: static int](gba: GBA, instr: uint32) =
+proc loadStoreSignExtended[hs, ro: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreSignExtended<" & $hs & "," & $ro & ">(0x" & instr.toHex(4) & ")"
 
-proc loadStoreRegOffset[lb, ro: static int](gba: GBA, instr: uint32) =
+proc loadStoreRegOffset[lb, ro: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreRegOffset<" & $lb & "," & $ro & ">(0x" & instr.toHex(4) & ")"
 
-proc pcRelativeLoad[rd: static int](gba: GBA, instr: uint32) =
+proc pcRelativeLoad[rd: static uint32](gba: GBA, instr: uint32) =
   let immediate = instr.bitsliced(0..7) shl 2
   gba.cpu.r[rd] = gba.bus.readWord((gba.cpu.r[15] and not(2'u32)) + immediate)
   gba.cpu.stepThumb()
 
-proc highRegOps[op: static int, h1, h2: static bool](gba: GBA, instr: uint32) =
+proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: PcRelativeLoad<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
 
-proc aluOps[op: static int](gba: GBA, instr: uint32) =
+proc aluOps[op: static uint32](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rs = instr.bitsliced(3..5)
@@ -74,7 +74,7 @@ proc aluOps[op: static int](gba: GBA, instr: uint32) =
   else: quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
   gba.cpu.stepThumb()
 
-proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
+proc moveCompareAddSubtract[op, rd: static uint32](gba: GBA, instr: uint32) =
   let immediate = instr.bitsliced(0..7)
   case op
   of 0b00:
@@ -86,17 +86,17 @@ proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
   else: quit "Unimplemented instruction: MoveCompareAddSubtract<" & $op & "," & $rd & ">(0x" & instr.toHex(4) & ")"
   gba.cpu.stepThumb()
 
-proc addSubtract[immediate, sub: static bool, offset: static int](gba: GBA, instr: uint32) =
+proc addSubtract[immediate, sub: static bool, offset: static uint32](gba: GBA, instr: uint32) =
   let
     rs = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
-    value = if immediate: uint32(offset)
+    value = if immediate: offset
             else: gba.cpu.r[offset]
   gba.cpu.r[rd] = if sub: gba.cpu.sub(gba.cpu.r[rs], value, true)
                   else:   gba.cpu.add(gba.cpu.r[rs], value, true)
   gba.cpu.stepThumb()
 
-proc moveShiftedReg[op, offset: static int](gba: GBA, instr: uint32) =
+proc moveShiftedReg[op, offset: static uint32](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rs = instr.bitsliced(3..5)
@@ -113,7 +113,7 @@ proc moveShiftedReg[op, offset: static int](gba: GBA, instr: uint32) =
 
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
-  for i in 0 ..< 1024:
+  for i in 0'u32 ..< 1024'u32:
     if (i and 0b1111000000) == 0b1111000000:
       result.add newTree(nnkBracketExpr, bindSym"longBranchLink", i.testBit(5).newLit())
     elif (i and 0b1111100000) == 0b1110000000:

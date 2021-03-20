@@ -36,7 +36,7 @@ proc branch_exchange(gba: GBA, instr: uint32) =
   gba.cpu.cpsr.thumb = bool(address and 1)
   gba.cpu.setReg(15, address)
 
-proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static int](gba: GBA, instr: uint32) =
+proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static uint32](gba: GBA, instr: uint32) =
   let
     rn = instr.bitSliced(16..19)
     rd = instr.bitSliced(12..15)
@@ -138,7 +138,7 @@ proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32)
     gba.cpu.setReg(rd, value)
   if not(not(msr) and rd == 15): gba.cpu.stepArm()
 
-proc data_processing[immediate: static bool, op: static int, set_cond: static bool](gba: GBA, instr: uint32) =
+proc data_processing[immediate: static bool, op: static uint32, set_cond: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitSliced(16..19)
@@ -165,8 +165,7 @@ proc data_processing[immediate: static bool, op: static int, set_cond: static bo
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
-  const InstrCount = 4096
-  for i in 0 ..< InstrCount:
+  for i in 0'u32 ..< 4096'u32:
     if (i and 0b111111001111) == 0b000000001001:
       result.add newTree(nnkBracketExpr, bindSym"multiply", i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111110001111) == 0b000010001001:
