@@ -60,7 +60,17 @@ proc aluOps[op: static int](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
 
 proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: MoveCompareAddSubtract<" & $op & "," & $rd & ">(0x" & instr.toHex(4) & ")"
+  let immediate = instr.bitsliced(0..7)
+  case op
+  of 0b00:
+    gba.cpu.r[rd] = immediate
+    gba.cpu.setNegAndZeroFlags(immediate)
+  of 0b01: discard gba.cpu.sub(gba.cpu.r[rd], immediate, true)
+  of 0b10: gba.cpu.r[rd] = gba.cpu.add(gba.cpu.r[rd], immediate, true)
+  of 0b11: gba.cpu.r[rd] = gba.cpu.sub(gba.cpu.r[rd], immediate, true)
+  else: quit "Unimplemented instruction: MoveCompareAddSubtract<" & $op & "," & $rd & ">(0x" & instr.toHex(4) & ")"
+
+  gba.cpu.stepThumb()
 
 proc addSubtract[immediate, sub: static bool, offset: static int](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: AddSubtract<" & $immediate & "," & $sub & "," & $offset & ">(0x" & instr.toHex(4) & ")"
