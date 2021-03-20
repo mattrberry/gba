@@ -64,7 +64,15 @@ proc highRegOps[op: static int, h1, h2: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: PcRelativeLoad<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
 
 proc aluOps[op: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
+  var shifterCarryOut = gba.cpu.cpsr.carry
+  let
+    rs = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+  case op
+  of 0xE:
+    gba.cpu.r[rd] = gba.cpu.r[rd] and not(gba.cpu.r[rs])
+  else: quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
+  gba.cpu.stepThumb()
 
 proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
   let immediate = instr.bitsliced(0..7)
@@ -76,7 +84,6 @@ proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
   of 0b10: gba.cpu.r[rd] = gba.cpu.add(gba.cpu.r[rd], immediate, true)
   of 0b11: gba.cpu.r[rd] = gba.cpu.sub(gba.cpu.r[rd], immediate, true)
   else: quit "Unimplemented instruction: MoveCompareAddSubtract<" & $op & "," & $rd & ">(0x" & instr.toHex(4) & ")"
-
   gba.cpu.stepThumb()
 
 proc addSubtract[immediate, sub: static bool, offset: static int](gba: GBA, instr: uint32) =
