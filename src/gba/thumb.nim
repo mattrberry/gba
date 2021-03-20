@@ -6,7 +6,14 @@ proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
 
 proc longBranchLink[offset_high: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: LongBranchLink<" & $offset_high & ">(0x" & instr.toHex(4) & ")"
+  let offset = instr.bitsliced(0..10)
+  if offset_high:
+    let r15 = gba.cpu.r[15]
+    gba.cpu.setReg(15, gba.cpu.r[14] + (offset shl 1))
+    gba.cpu.r[14] = r15 - 2
+  else:
+    gba.cpu.r[14] = gba.cpu.r[15] + (offset shl 12)
+    gba.cpu.stepThumb()
 
 proc unconditionalBranch(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: UnconditionalBranch<>(0x" & instr.toHex(4) & ")"
