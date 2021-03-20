@@ -15,7 +15,11 @@ proc softwareInterrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(4) & ")"
 
 proc conditionalBranch[cond: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: ConditionalBranch<" & $cond & ">(0x" & instr.toHex(4) & ")"
+  if gba.cpu.checkCond(cond):
+    let offset = cast[uint32](int32(instr.bitsliced(0..7) * 2))
+    gba.cpu.setReg(15, gba.cpu.r[15] + offset)
+  else:
+    gba.cpu.stepThumb()
 
 proc multipleLoadStore[load: static bool, rb: static int](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: MultipleLoadStore<" & $load & "," & $rb & ">(0x" & instr.toHex(4) & ")"
