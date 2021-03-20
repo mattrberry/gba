@@ -80,7 +80,14 @@ proc moveCompareAddSubtract[op, rd: static int](gba: GBA, instr: uint32) =
   gba.cpu.stepThumb()
 
 proc addSubtract[immediate, sub: static bool, offset: static int](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: AddSubtract<" & $immediate & "," & $sub & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  let
+    rs = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+    value = if immediate: uint32(offset)
+            else: gba.cpu.r[offset]
+  gba.cpu.r[rd] = if sub: gba.cpu.sub(gba.cpu.r[rs], value, true)
+                  else:   gba.cpu.add(gba.cpu.r[rs], value, true)
+  gba.cpu.stepThumb()
 
 proc moveShiftedReg[op, offset: static int](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
