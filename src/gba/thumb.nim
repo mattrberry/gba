@@ -29,7 +29,24 @@ proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
     gba.cpu.stepThumb()
 
 proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: MultipleLoadStore<" & $load & "," & $rb & ">(0x" & instr.toHex(4) & ")"
+  let
+    list = instr.bitsliced(0..7)
+    setBits = countSetBits(list)
+    finalAddress = uint32(setBits * 4)
+  var
+    address = gba.cpu.r[rb]
+    firstTransfer = false
+  for i in 0 .. 7:
+    if list.testBit(i):
+      if load:
+        gba.cpu.r[i] = gba.bus[address]
+      else:
+        gba.bus[address] = gba.cpu.r[i]
+        if not(firstTransfer): gba.cpu.r[rb] = finalAddress
+        firstTransfer = true
+      address += 4
+  if not(load): gba.cpu.r[rb] = finalAddress
+  gba.cpu.stepThumb()
 
 proc pushPop[load, pclr: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: PushPop<" & $load & "," & $pclr & ">(0x" & instr.toHex(4) & ")"
