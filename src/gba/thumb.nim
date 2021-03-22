@@ -29,13 +29,13 @@ proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
     gba.cpu.stepThumb()
 
 proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: uint32) =
-  let
-    list = instr.bitsliced(0..7)
-    setBits = countSetBits(list)
-    finalAddress = uint32(setBits * 4)
   var
     address = gba.cpu.r[rb]
     firstTransfer = false
+  let
+    list = instr.bitsliced(0..7)
+    setBits = countSetBits(list)
+    finalAddress = address + uint32(setBits * 4)
   for i in 0 .. 7:
     if list.testBit(i):
       if load:
