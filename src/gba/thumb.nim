@@ -23,7 +23,7 @@ proc softwareInterrupt(gba: GBA, instr: uint32) =
 
 proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(cond):
-    let offset = cast[uint32](int32(instr.bitsliced(0..7) * 2))
+    let offset = cast[uint32](int32(cast[int8](instr.bitsliced(0..7))) * 2)
     gba.cpu.setReg(15, gba.cpu.r[15] + offset)
   else:
     gba.cpu.stepThumb()
