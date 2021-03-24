@@ -10,7 +10,7 @@ proc longBranchLink[offset_high: static bool](gba: GBA, instr: uint32) =
   if offset_high:
     let r15 = gba.cpu.r[15]
     gba.cpu.setReg(15, gba.cpu.r[14] + (offset shl 1))
-    gba.cpu.r[14] = r15 - 2
+    gba.cpu.r[14] = (r15 - 2) or 1
   else:
     gba.cpu.r[14] = gba.cpu.r[15] + (offset shl 12)
     gba.cpu.stepThumb()
@@ -78,7 +78,19 @@ proc pcRelativeLoad[rd: static uint32](gba: GBA, instr: uint32) =
   gba.cpu.stepThumb()
 
 proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: PcRelativeLoad<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
+  let
+    rs = instr.bitsliced(3..5) or ((instr and 0x40) shr 3)
+    rd = instr.bitsliced(0..2) or ((instr and 0x80) shr 4)
+    value = gba.cpu.r[rs]
+  case op
+  of 0b00: gba.cpu.setReg(rd, gba.cpu.add(gba.cpu.r[rd], value, false))
+  of 0b01: discard gba.cpu.sub(gba.cpu.r[rd], value, true)
+  of 0b10: gba.cpu.setReg(rd, value)
+  of 0b11:
+    gba.cpu.cpsr.thumb = value.testBit(0)
+    gba.cpu.setReg(15, value)
+  else: quit "Unimplemented instruction: HighRegOps<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
+  if op != 0b11 and not((op != 0b01 and rd == 15)): gba.cpu.stepThumb()
 
 proc aluOps[op: static uint32](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
