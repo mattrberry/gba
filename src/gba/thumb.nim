@@ -100,6 +100,7 @@ proc aluOps[op: static uint32](gba: GBA, instr: uint32) =
   case op
   of 0xE:
     gba.cpu.r[rd] = gba.cpu.r[rd] and not(gba.cpu.r[rs])
+    gba.cpu.setNegAndZeroFlags(gba.cpu.r[rd])
   else: quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
   gba.cpu.stepThumb()
 
