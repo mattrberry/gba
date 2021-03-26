@@ -64,7 +64,17 @@ proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr
   quit "Unimplemented instruction: LoadStoreHalfword<" & $load & "," & $offset & ">(0x" & instr.toHex(4) & ")"
 
 proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: LoadStoreImmOffset<" & $bl & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  let
+    rb = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+    address = gba.cpu.r[rb]
+  case bl
+  of 0b00: gba.bus[address + (offset shl 2)] = gba.cpu.r[rd]
+  of 0b01: gba.cpu.r[rd] = gba.bus.readWord(address + (offset shl 2))
+  of 0b10: gba.bus[address + offset] = uint8(gba.cpu.r[rd] and 0xFF)
+  of 0b11: gba.cpu.r[rd] = uint32(gba.bus[address + offset])
+  else: quit "Unimplemented instruction: LoadStoreImmOffset<" & $bl & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  gba.cpu.stepThumb();
 
 proc loadStoreSignExtended[hs, ro: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreSignExtended<" & $hs & "," & $ro & ">(0x" & instr.toHex(4) & ")"
