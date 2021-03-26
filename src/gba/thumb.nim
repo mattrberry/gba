@@ -39,13 +39,13 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
   for i in 0 .. 7:
     if list.testBit(i):
       if load:
-        gba.cpu.r[i] = gba.bus[address]
+        gba.cpu.r[i] = gba.bus.readWord(address)
       else:
         gba.bus[address] = gba.cpu.r[i]
         if not(firstTransfer): gba.cpu.r[rb] = finalAddress
         firstTransfer = true
       address += 4
-  if not(load): gba.cpu.r[rb] = finalAddress
+  if load: gba.cpu.r[rb] = finalAddress
   gba.cpu.stepThumb()
 
 proc pushPop[load, pclr: static bool](gba: GBA, instr: uint32) =
