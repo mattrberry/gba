@@ -45,11 +45,33 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
         if not(firstTransfer): gba.cpu.r[rb] = finalAddress
         firstTransfer = true
       address += 4
-  if load: gba.cpu.r[rb] = finalAddress
+  gba.cpu.r[rb] = finalAddress
   gba.cpu.stepThumb()
 
-proc pushPop[load, pclr: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: PushPop<" & $load & "," & $pclr & ">(0x" & instr.toHex(4) & ")"
+proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
+  var
+    address = gba.cpu.r[13]
+    firstTransfer = false
+    list = instr.bitsliced(0..7)
+    setBits = countSetBits(list) + int(pclr)
+    finalAddress = address + uint32(setBits * (if pop: 4 else: -4))
+  if not(pop): address = finalAddress
+  for i in 0 .. 7:
+    if list.testBit(i):
+      if pop:
+        gba.cpu.r[i] = gba.bus.readWord(address)
+      else:
+        gba.bus[address] = gba.cpu.r[i]
+        if not(firstTransfer): gba.cpu.r[13] = finalAddress
+        firstTransfer = true
+      address += 4
+  if pclr:
+    if pop:
+      gba.cpu.setReg(15, gba.bus.readWord(address))
+    else:
+      gba.bus[address] = gba.cpu.r[13]
+  if not(pop and pclr): gba.cpu.stepThumb()
+  gba.cpu.r[13] = finalAddress
 
 proc addToStackPointer[negative: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: AddToStackPointer<" & $negative & ">(0x" & instr.toHex(4) & ")"
@@ -164,7 +186,7 @@ macro lutBuilder(): untyped =
       result.add newTree(nnkBracketExpr, bindSym"conditionalBranch", newLit((i shr 2) and 0xF))
     elif (i and 0b1111000000) == 0b1100000000:
       result.add newTree(nnkBracketExpr, bindSym"multipleLoadStore", i.testBit(5).newLit(), newLit((i shr 2) and 7))
-    elif (i and 0b1111011000) == 0b1011011000:
+    elif (i and 0b1111011000) == 0b1011010000:
       result.add newTree(nnkBracketExpr, bindSym"pushPop", i.testBit(5).newLit(), i.testBit(2).newLit())
     elif (i and 0b1111111100) == 0b1011000000:
       result.add newTree(nnkBracketExpr, bindSym"addToStackPointer", i.testBit(1).newLit())
