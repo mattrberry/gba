@@ -1,6 +1,6 @@
 import bitops, strutils, std/macros
 
-import bus, cpu, types
+import bus, cpu, types, util
 
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
@@ -12,7 +12,7 @@ proc longBranchLink[offset_high: static bool](gba: GBA, instr: uint32) =
     gba.cpu.setReg(15, gba.cpu.r[14] + (offset shl 1))
     gba.cpu.r[14] = (r15 - 2) or 1
   else:
-    gba.cpu.r[14] = gba.cpu.r[15] + (offset shl 12)
+    gba.cpu.r[14] = gba.cpu.r[15] + (signExtend(offset, 10) shl 12)
     gba.cpu.stepThumb()
 
 proc unconditionalBranch(gba: GBA, instr: uint32) =
@@ -23,7 +23,7 @@ proc softwareInterrupt(gba: GBA, instr: uint32) =
 
 proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(cond):
-    let offset = cast[uint32](int32(cast[int8](instr.bitsliced(0..7))) * 2)
+    let offset = signExtend(instr.bitsliced(0..7), 7) * 2
     gba.cpu.setReg(15, gba.cpu.r[15] + offset)
   else:
     gba.cpu.stepThumb()
@@ -52,6 +52,7 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
   var
     address = gba.cpu.r[13]
     firstTransfer = false
+  let
     list = instr.bitsliced(0..7)
     setBits = countSetBits(list) + int(pclr)
     finalAddress = address + uint32(setBits * (if pop: 4 else: -4))
