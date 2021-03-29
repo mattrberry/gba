@@ -46,10 +46,8 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
              else: gba.cpu.r[rm]
   var address = gba.cpu.r[rn]
   if pre:
-    if add:
-      address += offset
-    else:
-      address -= offset
+    if add: address += offset
+    else: address -= offset
   case op
   of 0b01:
     if load:
@@ -59,17 +57,16 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
       # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
       # value will be address of the instruction plus 12.
       if rd == 15: value += 4
-      gba.bus[address] = uint16(value) and 0xFFFF'u16
+      gba.bus[address] = uint16(value and 0xFFFF)
   else: quit fmt"unhandled halfword transfer op: {op}"
   if not pre:
-    if add:
-      address += offset
-    else:
-      address -= offset
-  if writeback: quit "implement writeback"
-  if rd != 15: gba.cpu.stepArm()
+    if add: address += offset
+    else: address -= offset
+  # Post-index is always a writeback; don't writeback if value is loaded to base
+  if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
+  if not(load and rd == 15): gba.cpu.stepArm()
 
-proc single_data_transfer[immediate, pre, add, word, writeback, load: static bool](gba: GBA, instr: uint32) =
+proc single_data_transfer[immediate, pre, add, byte, writeback, load: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitSliced(16..19)
@@ -81,7 +78,7 @@ proc single_data_transfer[immediate, pre, add, word, writeback, load: static boo
     if add: address += offset
     else: address -= offset
   if load:
-    let value = if word: gba.bus[address].uint32
+    let value = if byte: gba.bus[address].uint32
                 else: gba.bus.readWordRotate(address)
     gba.cpu.setReg(rd, value)
   else:
@@ -89,12 +86,13 @@ proc single_data_transfer[immediate, pre, add, word, writeback, load: static boo
     # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
     # value will be address of the instruction plus 12.
     if rd == 15: value += 4
-    if word: value = value and 0xFF'u8
+    if byte: value = uint8(value and 0xFF)
     gba.bus[address] = value
   if not pre:
     if add: address += offset
     else: address -= offset
-  if writeback: quit "implement writeback"
+  # Post-index is always a writeback; don't writeback if value is loaded to base
+  if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
   if rd != 15: gba.cpu.stepArm()
 
 proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: uint32) =
