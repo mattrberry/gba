@@ -128,7 +128,13 @@ proc aluOps[op: static uint32](gba: GBA, instr: uint32) =
     rs = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
   case op
-  of 0xE:
+  of 0x8: # TST
+    gba.cpu.setNegAndZeroFlags(gba.cpu.r[rd] and gba.cpu.r[rs])
+  of 0xA: # CMP
+    gba.cpu.setNegAndZeroFlags(gba.cpu.sub(gba.cpu.r[rd], gba.cpu.r[rs], true))
+  of 0xB: # CMN
+    gba.cpu.setNegAndZeroFlags(gba.cpu.add(gba.cpu.r[rd], gba.cpu.r[rs], true))
+  of 0xE: # BIC
     gba.cpu.r[rd] = gba.cpu.r[rd] and not(gba.cpu.r[rs])
     gba.cpu.setNegAndZeroFlags(gba.cpu.r[rd])
   else: quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
