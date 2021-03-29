@@ -51,7 +51,6 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
 proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
   var
     address = gba.cpu.r[13]
-    firstTransfer = false
   let
     list = instr.bitsliced(0..7)
     setBits = countSetBits(list) + int(pclr)
@@ -63,16 +62,14 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
         gba.cpu.r[i] = gba.bus.readWord(address)
       else:
         gba.bus[address] = gba.cpu.r[i]
-        if not(firstTransfer): gba.cpu.r[13] = finalAddress
-        firstTransfer = true
       address += 4
   if pclr:
     if pop:
       gba.cpu.setReg(15, gba.bus.readWord(address))
     else:
-      gba.bus[address] = gba.cpu.r[13]
-  if not(pop and pclr): gba.cpu.stepThumb()
+      gba.bus[address] = gba.cpu.r[14]
   gba.cpu.r[13] = finalAddress
+  if not(pop and pclr): gba.cpu.stepThumb()
 
 proc addToStackPointer[negative: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: AddToStackPointer<" & $negative & ">(0x" & instr.toHex(4) & ")"
