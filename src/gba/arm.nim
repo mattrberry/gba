@@ -96,7 +96,40 @@ proc single_data_transfer[immediate, pre, add, byte, writeback, load: static boo
   if rd != 15: gba.cpu.stepArm()
 
 proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: BlockDataTransfer<" & $pre & "," & $add & "," & $psr_user & "," & $writeback & "," & $load & ">(0x" & instr.toHex(8) & ")"
+  if load and psr_user and instr.testBit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
+  let
+    rn = instr.bitsliced(16..19)
+    currentMode = gba.cpu.cpsr.mode
+  if psr_user: gba.cpu.mode = Mode.usr
+  var
+    firstTransfer = false
+    address = gba.cpu.r[rn]
+    list = instr.bitsliced(0..15)
+    setBits = countSetBits(list)
+  if setBits == 0: # odd behavior on empty list, tested in gba-suite
+    setBits = 16
+    list = 0x8000
+  let
+    finalAddress = if add: address + uint32(setBits * 4)
+                   else: address - uint32(setBits * 4)
+  # compensate for direction and pre-increment
+  if add and pre: address += 4
+  elif not(add):
+    address = finalAddress
+    if not(pre): address += 4
+  for i in 0 .. 15:
+    if list.testBit(i):
+      if load:
+        gba.cpu.setReg(i, gba.bus.readWord(address))
+      else:
+        var value = gba.cpu.r[i]
+        if i == 15: value += 4
+        gba.bus[address] = gba.cpu.r[i]
+      address += 4
+      if writeback and not(firstTransfer) and not(load and list.testBit(rn)): gba.cpu.setReg(rn, finalAddress)
+      firstTransfer = true
+  if psr_user: gba.cpu.mode = currentMode
+  if not(load and list.testBit(15)): gba.cpu.stepArm()
 
 proc branch[link: static bool](gba: GBA, instr: uint32) =
   var offset = instr.bitSliced(0..23)

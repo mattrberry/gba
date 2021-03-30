@@ -84,7 +84,7 @@ proc stepThumb*(cpu: var CPU) =
 proc clearPipeline(cpu: var CPU) =
   cpu.r[15] += (if cpu.cpsr.thumb: 4 else: 8)
 
-proc setReg*(cpu: var CPU, reg: uint32, value: uint32) =
+proc setReg*(cpu: var CPU, reg: SomeInteger, value: uint32) =
   cpu.r[reg] = value
   if reg == 15: cpu.clearPipeline
 
