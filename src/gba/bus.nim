@@ -58,6 +58,12 @@ proc readHalf*(bus: Bus, index: uint32): uint16 =
        0xC, 0xD: cast[ptr uint16](addr bus.rom[aligned and 0x01FFFFFF])[]
     else: quit "Unmapped read: " & aligned.toHex(8)
 
+proc readHalfRotate*(bus: Bus, index: SomeInteger): uint32 =
+  let
+    half = bus.readHalf(index).uint32
+    bits = (index and 1) shl 3
+  result = (half shr bits) or (half shl (32 - bits))
+
 proc readWordSlow(bus: Bus, index: uint32): uint32 =
   bus[index].uint32 or
     (bus[index + 1].uint32 shl 8) or

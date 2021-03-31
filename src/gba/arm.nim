@@ -1,6 +1,6 @@
 import bitops, strformat, strutils, std/macros
 
-import bus, cpu, types
+import bus, cpu, types, util
 
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
   # todo putting "false" here causes the gba-suite tests to pass, but _why_
@@ -49,15 +49,18 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
     if add: address += offset
     else: address -= offset
   case op
-  of 0b01:
+  of 0b00: quit fmt"SWP instruction ({instr.toHex(8)})"
+  of 0b01: # LDRH / STRH
     if load:
-      quit "load halfword"
+      gba.cpu.setReg(rd, gba.bus.readHalfRotate(address))
     else:
       var value = gba.cpu.r[rd]
       # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
       # value will be address of the instruction plus 12.
       if rd == 15: value += 4
       gba.bus[address] = uint16(value and 0xFFFF)
+  of 0b10: # LDRSB
+    gba.cpu.setReg(rd, signExtend[uint32](gba.bus[address].uint32, 7))
   else: quit fmt"unhandled halfword transfer op: {op}"
   if not pre:
     if add: address += offset
