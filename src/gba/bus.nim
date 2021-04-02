@@ -1,16 +1,11 @@
 import bitops, strutils
 
-import types
-
-proc newBus*(gba: GBA, bios: openarray[byte]): Bus =
-  new result
-  result.gba = gba
-  for i in 0 ..< bios.len:
-    result.bios[i] = bios[i]
+import types, mmio
 
 proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   new result
   result.gba = gba
+  result.mmio = newMMIO(gba)
   for i in 0 ..< result.rom.len:
     var oob = 0xFFFF and (i shr 1)
     result.rom[i] = uint8((oob shr (8 * (i and 1))))
@@ -27,6 +22,7 @@ proc `[]`*(bus: Bus, index: uint32): uint8 =
     of 0x0: bus.bios[index and 0x3FFF]
     of 0x2: bus.iwram[index and 0x3FFFF]
     of 0x3: bus.ewram[index and 0x7FFF]
+    of 0x4: bus.mmio[index and 0xFFFFFF]
     of 0x5: bus.gba.ppu.pram[index and 0x3FF]
     of 0x6:
       var address = index and 0x1FFFF
@@ -47,6 +43,7 @@ proc readHalf*(bus: Bus, index: uint32): uint16 =
     of 0x0: cast[ptr uint16](addr bus.bios[aligned and 0x3FFF])[]
     of 0x2: cast[ptr uint16](addr bus.iwram[aligned and 0x3FFFF])[]
     of 0x3: cast[ptr uint16](addr bus.ewram[index and 0x7FFF])[]
+    of 0x4: bus.readHalfSlow(aligned)
     of 0x5: cast[ptr uint16](addr bus.gba.ppu.pram[aligned and 0x3FF])[]
     of 0x6:
       var address = aligned and 0x1FFFF
@@ -56,7 +53,7 @@ proc readHalf*(bus: Bus, index: uint32): uint16 =
     of 0x8, 0x9,
        0xA, 0xB,
        0xC, 0xD: cast[ptr uint16](addr bus.rom[aligned and 0x01FFFFFF])[]
-    else: quit "Unmapped read: " & aligned.toHex(8)
+    else: quit "Unmapped half read: " & aligned.toHex(8)
 
 proc readHalfRotate*(bus: Bus, index: SomeInteger): uint32 =
   let
@@ -76,6 +73,7 @@ proc readWord*(bus: Bus, index: uint32): uint32 =
     of 0x0: cast[ptr uint32](addr bus.bios[aligned and 0x3FFF])[]
     of 0x2: cast[ptr uint32](addr bus.iwram[aligned and 0x3FFFF])[]
     of 0x3: cast[ptr uint32](addr bus.ewram[index and 0x7FFF])[]
+    of 0x4: bus.readWordSlow(aligned)
     of 0x5: cast[ptr uint32](addr bus.gba.ppu.pram[aligned and 0x3FF])[]
     of 0x6:
       var address = aligned and 0x1FFFF
@@ -85,7 +83,7 @@ proc readWord*(bus: Bus, index: uint32): uint32 =
     of 0x8, 0x9,
        0xA, 0xB,
        0xC, 0xD: cast[ptr uint32](addr bus.rom[aligned and 0x01FFFFFF])[]
-    else: quit "Unmapped read: " & aligned.toHex(8)
+    else: quit "Unmapped word read: " & aligned.toHex(8)
 
 proc readWordRotate*(bus: Bus, index: uint32): uint32 =
   let
@@ -97,7 +95,7 @@ proc `[]=`*(bus: Bus, index: uint32, value: uint8) =
   case bitsliced(index, 24..27)
   of 0x2: bus.iwram[index and 0x3FFFF] = value
   of 0x3: bus.ewram[index and 0x7FFF] = value
-  of 0x4: echo "Writing to I/O: " & index.toHex(8) & " ~> " & value.toHex(2)
+  of 0x4: bus.mmio[index and 0xFFFFFF] = value
   of 0x5: bus.gba.ppu.pram[index and 0x3FF] = value
   of 0x6:
     var address = index and 0x1FFFF

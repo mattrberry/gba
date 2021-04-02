@@ -27,6 +27,10 @@ type
     iwram*: array[0x40000, uint8]
     ewram*: array[0x08000, uint8]
     rom*: array[0x02000000, uint8]
+    mmio*: MMIO
+
+  MMIO* = ref object
+    gba*: GBA
 
   CPU* = ref object
     gba*: GBA
@@ -40,7 +44,6 @@ type
     pram*: array[0x400, uint8]
     vram*: array[0x18000, uint8]
     oam*: array[0x400, uint8]
-    vcount*: uint16
 
   Scheduler* = ref object
     events*: HeapQueue[Event]
