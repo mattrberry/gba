@@ -201,6 +201,12 @@ proc data_processing[immediate: static bool, op: static uint32, set_cond, bit4: 
   of 0xA: # cmp
     discard gba.cpu.sub(gba.cpu.r[rn], op2, set_cond)
     gba.cpu.stepArm()
+  of 0xC: # orr
+    gba.cpu.setReg(rd, gba.cpu.r[rn] or op2)
+    if set_cond:
+      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
+      gba.cpu.cpsr.carry = shifterCarryOut
+    if rd != 15: gba.cpu.stepArm()
   of 0xD: # mov
     gba.cpu.setReg(rd, op2)
     if set_cond:
