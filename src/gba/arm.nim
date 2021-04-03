@@ -23,7 +23,16 @@ proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
 
 proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: Multiply<" & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+  let
+    rd = instr.bitsliced(16..19)
+    rn = instr.bitsliced(12..15)
+    rs = instr.bitsliced(8..11)
+    rm = instr.bitsliced(0..3)
+  var value = gba.cpu.r[rm] * gba.cpu.r[rs]
+  if accumulate: value += gba.cpu.r[rn]
+  gba.cpu.setReg(rd, value)
+  if set_cond: setNegAndZeroFlags(gba.cpu, value)
+  if rd != 15: gba.cpu.stepArm()
 
 proc multiply_long[signed, accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
