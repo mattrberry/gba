@@ -191,11 +191,14 @@ proc data_processing[immediate: static bool, op: static uint32, set_cond: static
           else:
             rotateRegister(gba.cpu, instr.bitSliced(0..11), shifterCarryOut, true)
   case op
-  of 0x0:
+  of 0x0: # and
     gba.cpu.setReg(rd, gba.cpu.r[rn] and op2)
     if set_cond:
       setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
       gba.cpu.cpsr.carry = shifterCarryOut
+    if rd != 15: gba.cpu.stepArm()
+  of 0x2: # sub
+    gba.cpu.setReg(rd, gba.cpu.sub(gba.cpu.r[rn], op2, set_cond))
     if rd != 15: gba.cpu.stepArm()
   of 0x4: # add
     gba.cpu.setReg(rd, gba.cpu.add(gba.cpu.r[rn], op2, set_cond))
