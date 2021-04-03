@@ -111,17 +111,17 @@ proc lsl*(word, bits: uint32, carryOut: var bool): uint32 =
   carryOut = word.testBit(32 - bits)
   result = word shl bits
 
-proc lsr*(word, bits: uint32, carryOut: var bool): uint32 =
+proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   let bits = if bits == 0: 32'u32 else: bits
   carryOut = word.testBit(bits - 1)
   result = word shr bits
 
-proc asr*(word, bits: uint32, carryOut: var bool): uint32 =
+proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   let bits = if bits == 0: 32'u32 else: bits
   carryOut = word.testBit(bits - 1)
   result = (word shr bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
 
-proc ror*(word, bits: uint32, immediate: bool, carryOut: var bool): uint32 =
+proc ror*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: # RRX #1
     if not immediate: return word
     result = (word shr 1) or (uint32(carryOut) shl 31)
@@ -131,6 +131,14 @@ proc ror*(word, bits: uint32, immediate: bool, carryOut: var bool): uint32 =
     if bits == 0: bits = 32 # ROR by 32 has result equal to Rm, carry out equal to bit 31 of Rm.
     carryOut = word.testBit(bits - 1)
     result = (word shr bits) or (word shl (32 - bits))
+
+proc shift*[immediate: static bool](shiftType, word, bits: uint32, carryOut: var bool): uint32 =
+  result = case shiftType
+    of 0b00: lsl(word, bits, carryOut)
+    of 0b01: lsr[immediate](word, bits, carryOut)
+    of 0b10: asr[immediate](word, bits, carryOut)
+    of 0b11: ror[immediate](word, bits, carryOut)
+    else: quit "Invalid shift[" & $immediate & "](" & $shiftType  & "," & word.toHex(8) & "," & $bits & "," & $carryOut & ")"
 
 import arm, thumb
 

@@ -3,19 +3,15 @@ import bitops, strformat, strutils, std/macros
 import bus, cpu, types, util
 
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
-  # todo putting "false" here causes the gba-suite tests to pass, but _why_
-  result = ror(instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), false, carryOut)
+  result = ror[false](instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), carryOut)
 
-proc rotateRegister(cpu: CPU, instr: uint32, carryOut: var bool, allowRegisterShifts: bool): uint32 =
+proc rotateRegister[immediate: static bool](cpu: CPU, instr: uint32, carryOut: var bool): uint32 =
   let
     reg = instr.bitSliced(0..3)
     shiftType = instr.bitSliced(5..6)
-    immediate = not(allowRegisterShifts and instr.testBit(4))
     shiftAmount = if immediate: instr.bitSliced(7..11)
                   else: cpu.r[instr.bitSliced(8..11)] and 0xFF
-  result = case shiftType
-           of 0b00: lsl(cpu.r[reg], shiftAmount, carryOut)
-           else: quit fmt"unimplemented shift type: {shiftType}"
+  result = shift[immediate](shiftType, cpu.r[reg], shiftAmount, carryOut)
 
 converter psrToU32(psr: PSR): uint32 = cast[uint32](psr)
 
@@ -78,12 +74,13 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
   if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
   if not(load and rd == 15): gba.cpu.stepArm()
 
-proc single_data_transfer[immediate, pre, add, byte, writeback, load: static bool](gba: GBA, instr: uint32) =
+proc single_data_transfer[immediate, pre, add, byte, writeback, load, bit4: static bool](gba: GBA, instr: uint32) =
+  if immediate and bit4: quit "LDR/STR: Cannot shift by a register. TODO: Probably should throw undefined exception"
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitSliced(16..19)
     rd = instr.bitsliced(12..15)
-    offset = if immediate: rotateRegister(gba.cpu, instr.bitSliced(0..11), shifterCarryOut, false)
+    offset = if immediate: rotateRegister[not(bit4)](gba.cpu, instr.bitSliced(0..11), shifterCarryOut)
              else: instr.bitSliced(0..11)
   var address = gba.cpu.r[rn]
   if pre:
@@ -181,15 +178,13 @@ proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32)
     gba.cpu.setReg(rd, value)
   if not(not(msr) and rd == 15): gba.cpu.stepArm()
 
-proc data_processing[immediate: static bool, op: static uint32, set_cond: static bool](gba: GBA, instr: uint32) =
+proc data_processing[immediate: static bool, op: static uint32, set_cond, bit4: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitSliced(16..19)
     rd = instr.bitSliced(12..15)
-    op2 = if immediate:
-            immediateOffset(instr.bitSliced(0..11), shifterCarryOut)
-          else:
-            rotateRegister(gba.cpu, instr.bitSliced(0..11), shifterCarryOut, true)
+    op2 = if immediate: immediateOffset(instr.bitSliced(0..11), shifterCarryOut)
+          else: rotateRegister[not(bit4)](gba.cpu, instr.bitSliced(0..11), shifterCarryOut)
   case op
   of 0x0: # and
     gba.cpu.setReg(rd, gba.cpu.r[rn] and op2)
@@ -231,7 +226,7 @@ macro lutBuilder(): untyped =
     elif (i and 0b111000000001) == 0b011000000001:
       result.add newNilLit() # undefined instruction
     elif (i and 0b110000000000) == 0b010000000000:
-      result.add newTree(nnkBracketExpr, bindSym"single_data_transfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"single_data_transfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), i.testBit(0).newLit())
     elif (i and 0b111000000000) == 0b100000000000:
       result.add newTree(nnkBracketExpr, bindSym"block_data_transfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111000000000) == 0b101000000000:
@@ -247,7 +242,7 @@ macro lutBuilder(): untyped =
     elif (i and 0b110110010000) == 0b000100000000:
       result.add newTree(nnkBracketExpr, bindSym"status_transfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
-      result.add newTree(nnkBracketExpr, bindSym"data_processing", i.testBit(9).newLit(), newLit((i shr 5) and 0xF), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"data_processing", i.testBit(9).newLit(), newLit((i shr 5) and 0xF), i.testBit(4).newLit(), i.testBit(0).newLit())
     else:
       result.add bindSym"unimplemented"
 
