@@ -192,12 +192,24 @@ proc data_processing[immediate: static bool, op: static uint32, set_cond, bit4: 
       setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
       gba.cpu.cpsr.carry = shifterCarryOut
     if rd != 15: gba.cpu.stepArm()
+  of 0x1: # xor
+    gba.cpu.setReg(rd, gba.cpu.r[rn] xor op2)
+    if set_cond:
+      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
+      gba.cpu.cpsr.carry = shifterCarryOut
+    if rd != 15: gba.cpu.stepArm()
   of 0x2: # sub
     gba.cpu.setReg(rd, gba.cpu.sub(gba.cpu.r[rn], op2, set_cond))
     if rd != 15: gba.cpu.stepArm()
   of 0x4: # add
     gba.cpu.setReg(rd, gba.cpu.add(gba.cpu.r[rn], op2, set_cond))
     if rd != 15: gba.cpu.stepArm()
+  of 0x8: # tst
+    let value = gba.cpu.r[rn] and op2
+    if set_cond:
+      setNegAndZeroFlags(gba.cpu, value)
+      gba.cpu.cpsr.carry = shifterCarryOut
+    gba.cpu.stepArm()
   of 0xA: # cmp
     discard gba.cpu.sub(gba.cpu.r[rn], op2, set_cond)
     gba.cpu.stepArm()
