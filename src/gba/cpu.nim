@@ -112,18 +112,24 @@ proc lsl*(word, bits: uint32, carryOut: var bool): uint32 =
   result = word shl bits
 
 proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
-  let bits = if bits == 0: 32'u32 else: bits
+  let bits = if bits == 0:
+      if not(immediate): return word
+      else: 32'u32
+    else: bits
   carryOut = word.testBit(bits - 1)
   result = word shr bits
 
 proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
-  let bits = if bits == 0: 32'u32 else: bits
+  let bits = if bits == 0:
+      if not(immediate): return word
+      else: 32'u32
+    else: bits
   carryOut = word.testBit(bits - 1)
   result = (word shr bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
 
 proc ror*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: # RRX #1
-    if not immediate: return word
+    if not(immediate): return word
     result = (word shr 1) or (uint32(carryOut) shl 31)
     carryOut = word.testBit(0)
   else:
