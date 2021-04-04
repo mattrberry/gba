@@ -12,6 +12,7 @@ type
     apu*: APU
     cpu*: CPU
     ppu*: PPU
+    keypad*: Keypad
     scheduler*: Scheduler
 
   APU* = ref object
@@ -44,6 +45,9 @@ type
     pram*: array[0x400, uint8]
     vram*: array[0x18000, uint8]
     oam*: array[0x400, uint8]
+
+  Keypad* = ref object
+    gba*: GBA
 
   Scheduler* = ref object
     events*: HeapQueue[Event]

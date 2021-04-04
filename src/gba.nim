@@ -1,7 +1,7 @@
 import os
 import sdl2
 
-import gba/[apu, bus, cpu, display, ppu, scheduler, types]
+import gba/[apu, bus, cpu, display, keypad, ppu, scheduler, types]
 
 proc newGBA(bios, rom: string): GBA =
   new result
@@ -11,6 +11,7 @@ proc newGBA(bios, rom: string): GBA =
   result.display = newDisplay()
   result.cpu = newCPU(result)
   result.ppu = newPPU(result)
+  result.keypad = newKeypad(result)
 
 proc runFrame(gba: GBA) =
   for _ in 0 ..< 280896:
@@ -21,23 +22,8 @@ proc checkKeyInput(gba: GBA) =
   var event = sdl2.defaultEvent
   while pollEvent(event):
     case event.kind
-    of QuitEvent:
-      quit "quit event"
-    of KeyDown, KeyUp:
-      let key = cast[KeyboardEventObj](event)
-      case key.keysym.scancode
-      of SDL_SCANCODE_E: echo "up"
-      of SDL_SCANCODE_D: echo "down"
-      of SDL_SCANCODE_S: echo "left"
-      of SDL_SCANCODE_F: echo "right"
-      of SDL_SCANCODE_W: echo "l"
-      of SDL_SCANCODE_R: echo "r"
-      of SDL_SCANCODE_J: echo "b"
-      of SDL_SCANCODE_K: echo "a"
-      of SDL_SCANCODE_L: echo "select"
-      of SDL_SCANCODE_SEMICOLON: echo "start"
-      of SDL_SCANCODE_Q: quit "quit q"
-      else: discard
+    of QuitEvent: quit "quit event"
+    of KeyDown, KeyUp: gba.keypad.keyEvent(cast[KeyboardEventObj](event))
     else: discard
 
 proc loop(gba: GBA) {.cdecl.} =
