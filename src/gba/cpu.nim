@@ -53,10 +53,10 @@ proc checkCond*(cpu: CPU, cond: uint32): bool =
 proc readInstr(cpu: var CPU): uint32 =
   if cpu.cpsr.thumb:
     cpu.r[15].clearMask(1)
-    result = cpu.gba.bus.readHalf(cpu.r[15] - 4).uint32
+    result = cpu.gba.bus.read[:uint16](cpu.r[15] - 4).uint32
   else:
     cpu.r[15].clearMask(3)
-    result = cpu.gba.bus.readWord(cpu.r[15] - 8)
+    result = cpu.gba.bus.read[:uint32](cpu.r[15] - 8)
 
 proc `mode=`*(cpu: CPU, mode: Mode) =
   let

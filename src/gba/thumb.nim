@@ -39,7 +39,7 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
   for i in 0 .. 7:
     if list.testBit(i):
       if load:
-        gba.cpu.r[i] = gba.bus.readWord(address)
+        gba.cpu.r[i] = gba.bus.read[:uint32](address)
       else:
         gba.bus[address] = gba.cpu.r[i]
       address += 4
@@ -58,13 +58,13 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
   for i in 0 .. 7:
     if list.testBit(i):
       if pop:
-        gba.cpu.r[i] = gba.bus.readWord(address)
+        gba.cpu.r[i] = gba.bus.read[:uint32](address)
       else:
         gba.bus[address] = gba.cpu.r[i]
       address += 4
   if pclr:
     if pop:
-      gba.cpu.setReg(15, gba.bus.readWord(address))
+      gba.cpu.setReg(15, gba.bus.read[:uint32](address))
     else:
       gba.bus[address] = gba.cpu.r[14]
   gba.cpu.r[13] = finalAddress
@@ -89,9 +89,9 @@ proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
     address = gba.cpu.r[rb]
   case bl
   of 0b00: gba.bus[address + (offset shl 2)] = gba.cpu.r[rd]
-  of 0b01: gba.cpu.r[rd] = gba.bus.readWord(address + (offset shl 2))
+  of 0b01: gba.cpu.r[rd] = gba.bus.read[:uint32](address + (offset shl 2))
   of 0b10: gba.bus[address + offset] = uint8(gba.cpu.r[rd] and 0xFF)
-  of 0b11: gba.cpu.r[rd] = uint32(gba.bus[address + offset])
+  of 0b11: gba.cpu.r[rd] = uint32(gba.bus.read[:uint8](address + offset))
   else: quit "Unimplemented instruction: LoadStoreImmOffset<" & $bl & "," & $offset & ">(0x" & instr.toHex(4) & ")"
   gba.cpu.stepThumb();
 
@@ -103,7 +103,7 @@ proc loadStoreRegOffset[lb, ro: static uint32](gba: GBA, instr: uint32) =
 
 proc pcRelativeLoad[rd: static uint32](gba: GBA, instr: uint32) =
   let immediate = instr.bitsliced(0..7) shl 2
-  gba.cpu.r[rd] = gba.bus.readWord((gba.cpu.r[15] and not(2'u32)) + immediate)
+  gba.cpu.r[rd] = gba.bus.read[:uint32]((gba.cpu.r[15] and not(2'u32)) + immediate)
   gba.cpu.stepThumb()
 
 proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32) =

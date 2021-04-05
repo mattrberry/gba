@@ -57,7 +57,7 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
   of 0b00: quit fmt"SWP instruction ({instr.toHex(8)})"
   of 0b01: # LDRH / STRH
     if load:
-      gba.cpu.setReg(rd, gba.bus.readHalfRotate(address))
+      gba.cpu.setReg(rd, gba.bus.readRotate[:uint16](address))
     else:
       var value = gba.cpu.r[rd]
       # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
@@ -65,7 +65,7 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
       if rd == 15: value += 4
       gba.bus[address] = uint16(value and 0xFFFF)
   of 0b10: # LDRSB
-    gba.cpu.setReg(rd, signExtend[uint32](gba.bus[address].uint32, 7))
+    gba.cpu.setReg(rd, signExtend[uint32](gba.bus.read[:uint8](address).uint32, 7))
   else: quit fmt"unhandled halfword transfer op: {op}"
   if not pre:
     if add: address += offset
@@ -87,8 +87,8 @@ proc single_data_transfer[immediate, pre, add, byte, writeback, load, bit4: stat
     if add: address += offset
     else: address -= offset
   if load:
-    let value = if byte: gba.bus[address].uint32
-                else: gba.bus.readWordRotate(address)
+    let value = if byte: gba.bus.read[:uint8](address).uint32
+                else: gba.bus.readRotate[:uint32](address)
     gba.cpu.setReg(rd, value)
   else:
     var value = gba.cpu.r[rd]
@@ -129,7 +129,7 @@ proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: 
   for i in 0 .. 15:
     if list.testBit(i):
       if load:
-        gba.cpu.setReg(i, gba.bus.readWord(address))
+        gba.cpu.setReg(i, gba.bus.read[:uint32](address))
       else:
         var value = gba.cpu.r[i]
         if i == 15: value += 4
