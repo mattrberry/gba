@@ -17,11 +17,22 @@
     <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
     <div id="controls">
-        <div id="dpad">
-            <div id="up" button="69"></div>
+        <div class="dpad" id="dpad">
+            <div id="up" class="vertical" button="69"></div>
             <div id="left" button="83"></div>
             <div id="right" button="70"></div>
-            <div id="down" button="68"></div>
+            <div id="down" class="vertical" button="68"></div>
+        </div>
+
+        <div class="pills">
+            <div>
+            <div id="select" class="pill"></div>
+            <span>Select</span>
+            </div>
+            <div>
+                <div id="start" class="pill"></div>
+                <span>Start</span>
+            </div>
         </div>
 
         <div id="ab">

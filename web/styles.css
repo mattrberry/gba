@@ -13,7 +13,11 @@ body {
 }
 
 #controls {
-    width: 100%;
+    max-width: 640px;
+    display: flex;
+    justify-content: space-between;
+    padding: 2em;
+    margin: 0 auto;
 }
 
 #dpad {
@@ -23,14 +27,12 @@ body {
     grid-template-columns: auto auto auto;
     grid-template-rows: auto auto auto;
     float: left;
-    padding-left: 20px;
+    flex-shrink: 0;
 }
 
-#dpad div {
-    background-color: #eee;
-}
 
-#up {
+
+/* #up {
     grid-column: 2;
     grid-column-end: 3;
     grid-row-start: 1;
@@ -56,10 +58,10 @@ body {
     grid-column-end: 3;
     grid-row-start: 3;
     grid-row-end: 4;
-}
+} */
 
 #ab {
-    margin-left: 150px;
+    
     height: 150px;
 }
 
@@ -71,8 +73,6 @@ body {
     position: relative;
     display: inline-block;
     margin: 0;
-    float: right;
-    right: 40px;
     margin-left: 10px;
 }
 
@@ -82,4 +82,132 @@ body {
 
 #b {
     top: 44%;
+}
+
+/* 
+ * ==========================================================
+ * DPAD
+ * ==========================================================
+ */
+
+.dpad {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+.dpad::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 5%;
+    transform: translate(-50%, -50%);
+    width: 66.6%;
+    height: 66.6%;
+    background: #ddd;
+}
+
+.dpad > div {
+    border-radius: 17% 17% 50% 50%;
+    width: 30%;
+    height: 44%;
+    background: #ddd;
+    position: absolute;
+    cursor: pointer;
+}
+
+.dpad > div::before { 
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent;
+    border-bottom-color: #333;
+    border-bottom-width: 12px;
+    border-radius: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 10px; 
+    transition: all .25s;
+}
+
+.dpad > div::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 80%;
+    background: white;
+    left: 0;
+    top: 0;
+    border-radius: 30%;
+    transform: translate(-100%, 0);
+    pointer-events: none;
+}
+
+.dpad > div:hover::before {
+    top: 4px;
+}
+
+.dpad > div:hover {
+    background: linear-gradient(0deg, #ddd 0%, #eee 50%);
+}
+
+.dpad > div#up {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+}
+
+.dpad > div#down {
+    left: 50%;
+    transform: translateX(-50%) rotate(180deg);
+    bottom: 0;
+}
+
+.dpad > div#left {
+    top: 50%;
+    transform: translateY(-50%) rotate(270deg);
+    left: 7%;
+}
+
+.dpad > div#right {
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    right: 7%;
+}
+
+/* 
+ * ==========================================================
+ * Pill Buttons
+ * ==========================================================
+ */
+
+.pills {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.pills > div {
+    margin-bottom: 1em;
+}
+
+.pills .pill {
+    width: 80px;
+    height: 20px;
+    border-radius: 20px;
+    background: #333;
+    cursor: pointer;
+}
+
+.pills .pill:hover {
+    background: linear-gradient(0deg, #888 0%, #333 50%);
 }
