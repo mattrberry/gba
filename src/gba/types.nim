@@ -41,7 +41,6 @@ type
 
   PPU* = ref object
     gba*: GBA
-    framebuffer*: array[0x9600, uint16]
     pram*: array[0x400, uint8]
     vram*: array[0x18000, uint8]
     oam*: array[0x400, uint8]
