@@ -45,9 +45,6 @@ document.getElementById("open-rom").addEventListener("click",
     () => readToEmscriptenFileSystem("rom.gba", ".gba").then(
         () => Module.ccall('initFromEmscripten', null, [], [])));
 
-document.getElementById("select").addEventListener("click",
-    () => pressButton(Button.SELECT));
-
 
 var Module = {
     print: (() => {
