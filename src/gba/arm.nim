@@ -2,6 +2,16 @@ import bitops, strformat, strutils, std/macros
 
 import bus, cpu, types, util
 
+type
+  DataProcessingOp = enum
+    AND, eor, sub, rsb,
+    add, adc, sbc, rsc,
+    tst, teq, cmp, cmn,
+    orr, mov, bic, mvn
+
+const
+  LogicOps = {AND, eor, tst, teq, orr, mov, bic, mvn}
+
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
   result = ror[false](instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), carryOut)
 
@@ -178,54 +188,39 @@ proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32)
     gba.cpu.setReg(rd, value)
   if not(not(msr) and rd == 15): gba.cpu.stepArm()
 
-proc data_processing[immediate: static bool, op: static uint32, set_cond, bit4: static bool](gba: GBA, instr: uint32) =
+proc dataProcessing[immediate: static bool, op: static DataProcessingOp, setCond, bit4: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
-    rn = instr.bitSliced(16..19)
-    rd = instr.bitSliced(12..15)
-    op2 = if immediate: immediateOffset(instr.bitSliced(0..11), shifterCarryOut)
-          else: rotateRegister[not(bit4)](gba.cpu, instr.bitSliced(0..11), shifterCarryOut)
-  case op
-  of 0x0: # and
-    gba.cpu.setReg(rd, gba.cpu.r[rn] and op2)
-    if set_cond:
-      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
-      gba.cpu.cpsr.carry = shifterCarryOut
+    rn = instr.bitsliced(16..19)
+    rd = instr.bitsliced(12..15)
+    op1 = gba.cpu.r[rn]
+    op2 = when immediate: immediateOffset(instr.bitsliced(0..11), shifterCarryOut)
+          else: rotateRegister[not(bit4)](gba.cpu, instr.bitsliced(0..11), shifterCarryOut)
+  let value = case op
+    of AND: op1 and op2
+    of eor: op1 xor op2
+    of sub: gba.cpu.sub(op1, op2, setCond)
+    of rsb: gba.cpu.sub(op2, op1, setCond)
+    of add: gba.cpu.add(op1, op2, setCond)
+    of adc: gba.cpu.adc(op1, op2, setCond)
+    of sbc: gba.cpu.sbc(op1, op2, setCond)
+    of rsc: gba.cpu.sbc(op2, op1, setCond)
+    of tst: op1 and op2
+    of teq: op1 xor op2
+    of cmp: gba.cpu.sub(op1, op2, setCond)
+    of cmn: gba.cpu.add(op1, op2, setCond)
+    of orr: op1 or op2
+    of mov: op2
+    of bic: op1 and not(op2)
+    of mvn: not(op2)
+  when setCond:
+    setNegAndZeroFlags(gba.cpu, value)
+    when op in LogicOps: gba.cpu.cpsr.carry = shifterCarryOut
+    if rd == 15: quit "todo: implement data processing return " & instr.toHex(8)
+  when op notin {tst, teq, cmp, cmn}:
+    gba.cpu.setReg(rd, value)
     if rd != 15: gba.cpu.stepArm()
-  of 0x1: # xor
-    gba.cpu.setReg(rd, gba.cpu.r[rn] xor op2)
-    if set_cond:
-      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
-      gba.cpu.cpsr.carry = shifterCarryOut
-    if rd != 15: gba.cpu.stepArm()
-  of 0x2: # sub
-    gba.cpu.setReg(rd, gba.cpu.sub(gba.cpu.r[rn], op2, set_cond))
-    if rd != 15: gba.cpu.stepArm()
-  of 0x4: # add
-    gba.cpu.setReg(rd, gba.cpu.add(gba.cpu.r[rn], op2, set_cond))
-    if rd != 15: gba.cpu.stepArm()
-  of 0x8: # tst
-    let value = gba.cpu.r[rn] and op2
-    if set_cond:
-      setNegAndZeroFlags(gba.cpu, value)
-      gba.cpu.cpsr.carry = shifterCarryOut
-    gba.cpu.stepArm()
-  of 0xA: # cmp
-    discard gba.cpu.sub(gba.cpu.r[rn], op2, set_cond)
-    gba.cpu.stepArm()
-  of 0xC: # orr
-    gba.cpu.setReg(rd, gba.cpu.r[rn] or op2)
-    if set_cond:
-      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
-      gba.cpu.cpsr.carry = shifterCarryOut
-    if rd != 15: gba.cpu.stepArm()
-  of 0xD: # mov
-    gba.cpu.setReg(rd, op2)
-    if set_cond:
-      setNegAndZeroFlags(gba.cpu, gba.cpu.r[rd])
-      gba.cpu.cpsr.carry = shifterCarryOut
-    if rd != 15: gba.cpu.stepArm()
-  else: quit "DataProcessing<" & $immediate & "," & $op & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+  else: gba.cpu.stepArm()
 
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
@@ -260,7 +255,7 @@ macro lutBuilder(): untyped =
     elif (i and 0b110110010000) == 0b000100000000:
       result.add newTree(nnkBracketExpr, bindSym"status_transfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
-      result.add newTree(nnkBracketExpr, bindSym"data_processing", i.testBit(9).newLit(), newLit((i shr 5) and 0xF), i.testBit(4).newLit(), i.testBit(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.testBit(9).newLit(), newLit(DataProcessingOp((i shr 5) and 0xF)), i.testBit(4).newLit(), i.testBit(0).newLit())
     else:
       result.add bindSym"unimplemented"
 
