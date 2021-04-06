@@ -1,5 +1,7 @@
 body {
     margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
 }
 
 #canvas {
@@ -13,7 +15,40 @@ body {
 }
 
 #controls {
-    width: 100%;
+    max-width: 640px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2em;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+@media screen and (max-width: 600px) {
+    #controls {
+        padding: 0.5em;
+    }
+
+    #controls > div {
+        margin: 0.5em;
+    }
+
+    #dpad {
+        order: 1;
+    }
+
+    #pills {
+        order: 3;
+    }
+
+    #ab {
+        order: 2;
+    }
+}
+
+#controls > div {
+    margin: 1em;
+    display: flex;
 }
 
 #dpad {
@@ -23,63 +58,228 @@ body {
     grid-template-columns: auto auto auto;
     grid-template-rows: auto auto auto;
     float: left;
-    padding-left: 20px;
+    flex-shrink: 0;
 }
 
-#dpad div {
-    background-color: #eee;
+/* 
+ * ==========================================================
+ * DPAD
+ * ==========================================================
+ */
+
+#dpad {
+    width: 200px;
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+    flex-shrink: 0;
+    border-radius: 50%;
 }
 
-#up {
-    grid-column: 2;
-    grid-column-end: 3;
-    grid-row-start: 1;
-    grid-row-end: 2;
+@media screen and (max-width: 600px) {
+    #dpad {
+        width: 150px;
+        height: 150px;
+    }
 }
 
-#left {
-    grid-column: 1;
-    grid-column-end: 2;
-    grid-row-start: 2;
-    grid-row-end: 3;
+#dpad::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 5%;
+    transform: translate(-50%, -50%);
+    width: 66.6%;
+    height: 66.6%;
+    background: #ddd;
 }
 
-#right {
-    grid-column: 3;
-    grid-column-end: 4;
-    grid-row-start: 2;
-    grid-row-end: 3;
+.dpad-arrow {
+    border-radius: 17% 17% 50% 50%;
+    width: 30%;
+    height: 44%;
+    background: #ddd;
+    position: absolute;
+    cursor: pointer;
 }
 
-#down {
-    grid-column: 2;
-    grid-column-end: 3;
-    grid-row-start: 3;
-    grid-row-end: 4;
+.dpad-arrow::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent;
+    border-bottom-color: #333;
+    border-bottom-width: 12px;
+    border-radius: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 10px;
+    transition: all 0.25s;
 }
+
+.dpad-arrow::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 80%;
+    background: white;
+    left: 0;
+    top: 0;
+    border-radius: 30%;
+    transform: translate(-100%, 0);
+    pointer-events: none;
+}
+
+.dpad-arrow:hover::before {
+    top: 4px;
+}
+
+.dpad-arrow:hover {
+    background: linear-gradient(0deg, #ddd 0%, #eee 50%);
+}
+
+.dpad-arrow:active {
+    background: linear-gradient(0deg, #ddd 0%, #fff 100%);
+}
+
+.dpad-arrow#up {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+}
+
+.dpad-arrow#down {
+    left: 50%;
+    transform: translateX(-50%) rotate(180deg);
+    bottom: 0;
+}
+
+.dpad-arrow#left {
+    top: 50%;
+    transform: translateY(-50%) rotate(270deg);
+    left: 7%;
+}
+
+.dpad-arrow#right {
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    right: 7%;
+}
+
+/* 
+ * ==========================================================
+ * Button Core
+ * ==========================================================
+ */
+
+.button {
+    background-color: #333;
+    background: linear-gradient(to bottom, #333 0%, #555 26%, #888 100%);
+    border-top: 1px solid #777;
+    border-bottom: 1px solid #666;
+    box-shadow: -1px 6px 3px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    margin-top: 0;
+    margin-bottom: 6px;
+    position: relative;
+    transition: all 0.05s ease-out;
+    user-select: none;
+}
+
+.button:hover {
+    background: linear-gradient(to bottom, #444 0%, #666 26%, #999 100%);
+    box-shadow: -1px 5px 3px rgba(0, 0, 0, 0.2);
+    margin-top: 1px;
+    margin-bottom: 5px;
+}
+
+.button:active {
+    background: linear-gradient(to bottom, #444 0%, #666 26%, #999 100%);
+    box-shadow: -1px 2px 3px rgba(0, 0, 0, 0.2);
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+/* 
+ * ==========================================================
+ * Pill Buttons
+ * ==========================================================
+ */
+
+#pills {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    flex-direction: column;
+    text-transform: uppercase;
+    color: #666;
+}
+
+@media screen and (max-width: 600px) {
+    #pills {
+        flex-direction: row;
+    }
+}
+
+#pills > div {
+    margin: 0.5em;
+}
+
+#pills span {
+    user-select: none;
+}
+
+.pill {
+    width: 80px;
+    height: 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    background: linear-gradient(to top, #333 0%, #555 26%, #888 100%);
+}
+
+.pill:hover {
+    background: linear-gradient(to top, #444 0%, #666 26%, #999 100%);
+}
+
+.pill:active {
+    background: linear-gradient(to bottom, #444 0%, #666 26%, #999 100%);
+}
+
+/* 
+ * ==========================================================
+ * Round Buttons
+ * ==========================================================
+ */
 
 #ab {
-    margin-left: 150px;
-    height: 150px;
+    display: block;
+    position: relative;
+    width: 120px;
+    height: 160px;
 }
 
-#a, #b {
+#ab .button {
     width: 50px;
     height: 50px;
-    background-color: #eee;
+    line-height: 50px;
+    border-radius: 50%;
+    color: white;
+    font-weight: 700;
     text-align: center;
-    position: relative;
-    display: inline-block;
-    margin: 0;
-    float: right;
-    right: 40px;
-    margin-left: 10px;
+    position: absolute;
 }
 
 #a {
     top: 22%;
+    left: 0%;
 }
 
 #b {
     top: 44%;
+    left: 50%;
 }
