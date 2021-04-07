@@ -260,7 +260,7 @@ body {
     display: block;
     position: relative;
     width: 120px;
-    height: 160px;
+    height: 150px;
 }
 
 #ab .button {
@@ -276,10 +276,10 @@ body {
 
 #a {
     top: 22%;
-    left: 0%;
+    left: 50%;
 }
 
 #b {
     top: 44%;
-    left: 50%;
+    left: 0%;
 }
