@@ -1,39 +1,48 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <link rel="stylesheet" type="text/css" href="styles.css">
-</head>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <button type="button" id="open-bios">Open BIOS</button>
     <button type="button" id="open-rom">Open ROM</button>
     <button type="button" id="select">SELECT</button>
     <div id="fps"></div>
-    <br>
+    <br />
     <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
     <div id="controls">
-        <div id="dpad">
-            <div id="up" button="69"></div>
-            <div id="left" button="83"></div>
-            <div id="right" button="70"></div>
-            <div id="down" button="68"></div>
-        </div>
+      <div id="dpad">
+        <div id="up" class="vertical dpad-arrow" button="69"></div>
+        <div id="left" class="dpad-arrow" button="83"></div>
+        <div id="right" class="dpad-arrow" button="70"></div>
+        <div id="down" class="vertical dpad-arrow" button="68"></div>
+      </div>
 
-        <div id="ab">
-            <div id="a" button="75">A</div>
-            <div id="b" button="74">B</div>
+      <div id="pills">
+        <div>
+          <div id="select" class="pill button"></div>
+          <span>Select</span>
         </div>
+        <div>
+          <div id="start" class="pill button"></div>
+          <span>Start</span>
+        </div>
+      </div>
+
+      <div id="ab">
+        <div id="a" class="button" button="75">A</div>
+        <div id="b" class="button" button="74">B</div>
+      </div>
     </div>
 
     <div id="output"></div>
 
     <script src="index.js"></script>
     <script src="em.js"></script>
-</body>
-
+  </body>
 </html>
