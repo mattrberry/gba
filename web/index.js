@@ -100,3 +100,6 @@ var Module = {
     })(),
     canvas: (() => document.getElementById('canvas'))()
 };
+
+// Make mobile Safari respond to button :active
+document.addEventListener("touchstart", function() {}, false);
