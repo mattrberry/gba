@@ -83,10 +83,13 @@ type
   PSR* = object
     mode* {.bitsize:5.}: Mode
     thumb* {.bitsize:1.}: bool
-    fiq_disable* {.bitsize:1.}: bool
-    irq_disable* {.bitsize:1.}: bool
+    fiqDisable* {.bitsize:1.}: bool
+    irqDisable* {.bitsize:1.}: bool
     reserved* {.bitsize:20.}: cuint
     overflow*{.bitsize:1.}: bool
     carry* {.bitsize:1.}: bool
     zero* {.bitsize:1.}: bool
     negative* {.bitsize:1.}: bool
+
+converter toU32*(psr: PSR): uint32 = cast[uint32](psr)
+converter toPsr*(u32: uint32): PSR = cast[PSR](u32)

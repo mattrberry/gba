@@ -2,7 +2,6 @@ import algorithm, bitops, strutils
 
 import bus, types
 
-proc value(psr: PSR): uint32 = cast[uint32](psr)
 proc bank(mode: Mode): int =
   case mode
     of sys, usr: 0

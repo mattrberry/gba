@@ -13,22 +13,20 @@ const
   LogicOps = {AND, eor, tst, teq, orr, mov, bic, mvn}
 
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
-  result = ror[false](instr.bitSliced(0..7), 2 * instr.bitSliced(8..11), carryOut)
+  result = ror[false](instr.bitsliced(0..7), 2 * instr.bitsliced(8..11), carryOut)
 
 proc rotateRegister[immediate: static bool](cpu: CPU, instr: uint32, carryOut: var bool): uint32 =
   let
-    reg = instr.bitSliced(0..3)
-    shiftType = instr.bitSliced(5..6)
-    shiftAmount = if immediate: instr.bitSliced(7..11)
-                  else: cpu.r[instr.bitSliced(8..11)] and 0xFF
+    reg = instr.bitsliced(0..3)
+    shiftType = instr.bitsliced(5..6)
+    shiftAmount = if immediate: instr.bitsliced(7..11)
+                  else: cpu.r[instr.bitsliced(8..11)] and 0xFF
   result = shift[immediate](shiftType, cpu.r[reg], shiftAmount, carryOut)
-
-converter psrToU32(psr: PSR): uint32 = cast[uint32](psr)
 
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(8)
 
-proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
+proc multiply[accumulate, setCond: static bool](gba: GBA, instr: uint32) =
   let
     rd = instr.bitsliced(16..19)
     rn = instr.bitsliced(12..15)
@@ -37,27 +35,27 @@ proc multiply[accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
   var value = gba.cpu.r[rm] * gba.cpu.r[rs]
   if accumulate: value += gba.cpu.r[rn]
   gba.cpu.setReg(rd, value)
-  if set_cond: setNegAndZeroFlags(gba.cpu, value)
+  if setCond: setNegAndZeroFlags(gba.cpu, value)
   if rd != 15: gba.cpu.stepArm()
 
-proc multiply_long[signed, accumulate, set_cond: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $set_cond & ">(0x" & instr.toHex(8) & ")"
+proc multiplyLong[signed, accumulate, setCond: static bool](gba: GBA, instr: uint32) =
+  quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $setCond & ">(0x" & instr.toHex(8) & ")"
 
-proc single_data_swap[word: static bool](gba: GBA, instr: uint32) =
+proc singleDataSwap[word: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
 
-proc branch_exchange(gba: GBA, instr: uint32) =
+proc branchExchange(gba: GBA, instr: uint32) =
   let address = gba.cpu.r[instr.bitsliced(0..3)]
   gba.cpu.cpsr.thumb = bool(address and 1)
   gba.cpu.setReg(15, address)
 
-proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, op: static uint32](gba: GBA, instr: uint32) =
+proc halfwordDataTransfer[pre, add, immediate, writeback, load: static bool, op: static uint32](gba: GBA, instr: uint32) =
   let
-    rn = instr.bitSliced(16..19)
-    rd = instr.bitSliced(12..15)
-    offset_high = instr.bitSliced(8..11)
-    rm = instr.bitSliced(0..3)
-    offset = if immediate: (offset_high shl 4) or rm
+    rn = instr.bitsliced(16..19)
+    rd = instr.bitsliced(12..15)
+    offsetHigh = instr.bitsliced(8..11)
+    rm = instr.bitsliced(0..3)
+    offset = if immediate: (offsetHigh shl 4) or rm
              else: gba.cpu.r[rm]
   var address = gba.cpu.r[rn]
   if pre:
@@ -84,14 +82,14 @@ proc halfword_data_transfer[pre, add, immediate, writeback, load: static bool, o
   if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
   if not(load and rd == 15): gba.cpu.stepArm()
 
-proc single_data_transfer[immediate, pre, add, byte, writeback, load, bit4: static bool](gba: GBA, instr: uint32) =
+proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static bool](gba: GBA, instr: uint32) =
   if immediate and bit4: quit "LDR/STR: Cannot shift by a register. TODO: Probably should throw undefined exception"
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
-    rn = instr.bitSliced(16..19)
+    rn = instr.bitsliced(16..19)
     rd = instr.bitsliced(12..15)
-    offset = if immediate: rotateRegister[not(bit4)](gba.cpu, instr.bitSliced(0..11), shifterCarryOut)
-             else: instr.bitSliced(0..11)
+    offset = if immediate: rotateRegister[not(bit4)](gba.cpu, instr.bitsliced(0..11), shifterCarryOut)
+             else: instr.bitsliced(0..11)
   var address = gba.cpu.r[rn]
   if pre:
     if add: address += offset
@@ -114,12 +112,12 @@ proc single_data_transfer[immediate, pre, add, byte, writeback, load, bit4: stat
   if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
   if rd != 15: gba.cpu.stepArm()
 
-proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: GBA, instr: uint32) =
-  if load and psr_user and instr.testBit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
+proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA, instr: uint32) =
+  if load and psrUser and instr.testBit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
   let
     rn = instr.bitsliced(16..19)
     currentMode = gba.cpu.cpsr.mode
-  if psr_user: gba.cpu.mode = Mode.usr
+  if psrUser: gba.cpu.mode = Mode.usr
   var
     firstTransfer = false
     address = gba.cpu.r[rn]
@@ -147,19 +145,19 @@ proc block_data_transfer[pre, add, psr_user, writeback, load: static bool](gba: 
       address += 4
       if writeback and not(firstTransfer) and not(load and list.testBit(rn)): gba.cpu.setReg(rn, finalAddress)
       firstTransfer = true
-  if psr_user: gba.cpu.mode = currentMode
+  if psrUser: gba.cpu.mode = currentMode
   if not(load and list.testBit(15)): gba.cpu.stepArm()
 
 proc branch[link: static bool](gba: GBA, instr: uint32) =
-  var offset = instr.bitSliced(0..23)
+  var offset = instr.bitsliced(0..23)
   if offset.testBit(23): offset = offset or 0xFF000000'u32
   if link: gba.cpu.setReg(14, gba.cpu.r[15] - 4)
   gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
-proc software_interrupt(gba: GBA, instr: uint32) =
+proc softwareInterrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
 
-proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) =
+proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) =
   let
     rd = instr.bitsliced(12..15)
     mode = gba.cpu.cpsr.mode
@@ -171,16 +169,16 @@ proc status_transfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32)
     if not(spsr) and mode == Mode.usr: mask = mask and 0x000000FF'u32
     var
       barrelOut: bool
-      value = if immediate: immediateOffset(instr.bitSliced(0..11), barrelOut)
+      value = if immediate: immediateOffset(instr.bitsliced(0..11), barrelOut)
               else: gba.cpu.r[instr.bitsliced(0..3)]
     value = value and mask
     if spsr:
       if hasSpsr:
-        gba.cpu.spsr = cast[PSR]((cast[uint32](gba.cpu.spsr) and not(mask)) or value)
+        gba.cpu.spsr = (gba.cpu.spsr and not(mask)) or value
     else:
       let thumb = gba.cpu.cpsr.thumb
       if instr.testBit(16): gba.cpu.mode = Mode(value and 0x1F)
-      gba.cpu.cpsr = cast[PSR]((cast[uint32](gba.cpu.cpsr) and not(mask)) or value)
+      gba.cpu.cpsr = (gba.cpu.cpsr and not(mask)) or value
       gba.cpu.cpsr.thumb = thumb
   else:
     let value = if spsr and hasSpsr: gba.cpu.spsr
@@ -229,19 +227,19 @@ macro lutBuilder(): untyped =
     if (i and 0b111111001111) == 0b000000001001:
       result.add newTree(nnkBracketExpr, bindSym"multiply", i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111110001111) == 0b000010001001:
-      result.add newTree(nnkBracketExpr, bindSym"multiply_long", i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"multiplyLong", i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111110111111) == 0b000100001001:
-      result.add newTree(nnkBracketExpr, bindSym"single_data_swap", i.testBit(6).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"singleDataSwap", i.testBit(6).newLit())
     elif (i and 0b111111111111) == 0b000100100001:
-      result.add bindSym"branch_exchange"
+      result.add bindSym"branchExchange"
     elif (i and 0b111000001001) == 0b000000001001:
-      result.add newTree(nnkBracketExpr, bindSym"halfword_data_transfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), newLit (i shr 1) and 0b11)
+      result.add newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), newLit (i shr 1) and 0b11)
     elif (i and 0b111000000001) == 0b011000000001:
       result.add newNilLit() # undefined instruction
     elif (i and 0b110000000000) == 0b010000000000:
-      result.add newTree(nnkBracketExpr, bindSym"single_data_transfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), i.testBit(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), i.testBit(0).newLit())
     elif (i and 0b111000000000) == 0b100000000000:
-      result.add newTree(nnkBracketExpr, bindSym"block_data_transfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
     elif (i and 0b111000000000) == 0b101000000000:
       result.add newTree(nnkBracketExpr, bindSym"branch", i.testBit(8).newLit())
     elif (i and 0b111000000000) == 0b110000000000:
@@ -251,9 +249,9 @@ macro lutBuilder(): untyped =
     elif (i and 0b111100000001) == 0b111000000001:
       result.add newNilLit() # coprocessor register transfer
     elif (i and 0b111100000000) == 0b111100000000:
-      result.add bindSym"software_interrupt"
+      result.add bindSym"softwareInterrupt"
     elif (i and 0b110110010000) == 0b000100000000:
-      result.add newTree(nnkBracketExpr, bindSym"status_transfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"statusTransfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
       result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.testBit(9).newLit(), newLit(DataProcessingOp((i shr 5) and 0xF)), i.testBit(4).newLit(), i.testBit(0).newLit())
     else:
@@ -262,7 +260,7 @@ macro lutBuilder(): untyped =
 const lut = lutBuilder()
 
 proc execArm*(gba: GBA, instr: uint32) =
-  if gba.cpu.checkCond(instr.bitSliced(28..31)):
+  if gba.cpu.checkCond(instr.bitsliced(28..31)):
     lut[((instr shr 16) and 0x0FF0) or ((instr shr 4) and 0xF)](gba, instr)
   else:
     gba.cpu.stepArm()

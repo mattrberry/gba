@@ -5,9 +5,9 @@ import bus, cpu, types, util
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
 
-proc longBranchLink[offset_high: static bool](gba: GBA, instr: uint32) =
+proc longBranchLink[offsetHigh: static bool](gba: GBA, instr: uint32) =
   let offset = instr.bitsliced(0..10)
-  if offset_high:
+  if offsetHigh:
     let r15 = gba.cpu.r[15]
     gba.cpu.setReg(15, gba.cpu.r[14] + (offset shl 1))
     gba.cpu.r[14] = (r15 - 2) or 1
