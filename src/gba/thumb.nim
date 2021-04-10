@@ -80,7 +80,13 @@ proc spRelativeLoadStore[load: static bool, rd: static uint32](gba: GBA, instr: 
   quit "Unimplemented instruction: SpRelativeLoadStore<" & $load & "," & $rd & ">(0x" & instr.toHex(4) & ")"
 
 proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: LoadStoreHalfword<" & $load & "," & $offset & ">(0x" & instr.toHex(4) & ")"
+  let
+    rb = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+    address = gba.cpu.r[rb] + (offset shl 2)
+  if load: gba.cpu.r[rd] = gba.bus.read[:uint16](address)
+  else: gba.bus[address] = cast[uint16](gba.cpu.r[rd])
+  gba.cpu.stepThumb()
 
 proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
   let
