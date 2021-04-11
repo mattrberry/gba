@@ -15,6 +15,7 @@ var
   dispcnt: DISPCNT
   dispstat: DISPSTAT
   vcount: uint8
+  bgcnts: array[4, BGCNT]
 
 proc startLine(ppu: PPU): proc()
 proc startHblank(ppu: PPU): proc()
@@ -71,10 +72,14 @@ proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
   result = case address:
     of 0x00..0x01: read(dispcnt, address and 1)
     of 0x04..0x05: read(dispstat, address and 1)
+    of 0x06..0x07: (if address.testBit(0): vcount else: 0)
+    of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
     else: quit "Unmapped PPU read: " & address.toHex(4)
 
 proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   case address:
   of 0x00..0x01: write(dispcnt, value, address and 1)
   of 0x04..0x05: write(dispstat, value, address and 1)
+  of 0x06..0x07: discard # vcount
+  of 0x08..0x0F: write(bgcnts[(address - 0x08) div 2], value, address and 1)
   else: echo "Unmapped PPU write: ", address.toHex(4), " -> ", value.toHex(2)

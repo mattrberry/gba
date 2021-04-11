@@ -31,7 +31,7 @@ type
     irqEnable* {.bitsize:1.}: bool
     irqCondition* {.bitsize:1.}: bool
 
-  PPURegs = DISPCNT | DISPSTAT
+  PPURegs = DISPCNT | DISPSTAT | BGCNT
 
   DISPCNT* = object
     mode* {.bitsize:3.}: cuint
@@ -54,6 +54,16 @@ type
     vcountEnable* {.bitsize:1.}: bool
     notUsed* {.bitsize:2.}: cuint
     vcountTarget* {.bitsize:8.}: cuint
+
+  BGCNT* = object
+    priority* {.bitsize:2.}: cuint
+    charBase* {.bitsize:2.}: cuint
+    notUsed* {.bitsize:2.}: cuint
+    mosaic {.bitsize:1.}: bool
+    colorMode {.bitsize:1.}: bool
+    screenBase {.bitsize:5.}: cuint
+    affineWrap {.bitsize:1.}: bool
+    screenSize {.bitsize:2.}: cuint
 
 converter toU16(reg: Reg16): uint16 = cast[uint16](reg)
 converter toReg16[T: Reg16](num: uint16): T = cast[T](num)
