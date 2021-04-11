@@ -93,7 +93,12 @@ proc loadAddress[sp: static bool, rd: static uint32](gba: GBA, instr: uint32) =
   gba.cpu.stepThumb()
 
 proc spRelativeLoadStore[load: static bool, rd: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: SpRelativeLoadStore<" & $load & "," & $rd & ">(0x" & instr.toHex(4) & ")"
+  let
+    offset = instr.bitsliced(0..7) shl 2
+    address = gba.cpu.r[13] + offset
+  if load: gba.cpu.r[rd] = gba.bus.read[:uint32](address)
+  else: gba.bus[address] = gba.cpu.r[rd]
+  gba.cpu.stepThumb()
 
 proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr: uint32) =
   let
