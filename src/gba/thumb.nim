@@ -85,7 +85,12 @@ proc addToStackPointer[subtract: static bool](gba: GBA, instr: uint32) =
   gba.cpu.stepThumb()
 
 proc loadAddress[sp: static bool, rd: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: LoadAddress<" & $sp & "," & $rd & ">(0x" & instr.toHex(4) & ")"
+  let
+    base = if sp: gba.cpu.r[13]
+           else: gba.cpu.r[15] and not(2'u32)
+    offset = instr.bitsliced(0..7) shl 2
+  gba.cpu.r[rd] = base + offset
+  gba.cpu.stepThumb()
 
 proc spRelativeLoadStore[load: static bool, rd: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SpRelativeLoadStore<" & $load & "," & $rd & ">(0x" & instr.toHex(4) & ")"
