@@ -2,6 +2,13 @@ import bitops, strutils, std/macros
 
 import bus, cpu, types, util
 
+type
+  AluOp = enum
+    AND, EOR, LSL, LSR,
+    ASR, ADC, SBC, ROR,
+    TST, NEG, CMP, CMN,
+    ORR, MUL, BIC, MVN
+
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
 
@@ -128,22 +135,33 @@ proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32)
   else: quit "Unimplemented instruction: HighRegOps<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
   if op != 0b11 and not((op != 0b01 and rd == 15)): gba.cpu.stepThumb()
 
-proc aluOps[op: static uint32](gba: GBA, instr: uint32) =
+proc aluOps[op: static AluOp](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rs = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
-  case op
-  of 0x8: # TST
-    gba.cpu.setNegAndZeroFlags(gba.cpu.r[rd] and gba.cpu.r[rs])
-  of 0xA: # CMP
-    gba.cpu.setNegAndZeroFlags(gba.cpu.sub(gba.cpu.r[rd], gba.cpu.r[rs], true))
-  of 0xB: # CMN
-    gba.cpu.setNegAndZeroFlags(gba.cpu.add(gba.cpu.r[rd], gba.cpu.r[rs], true))
-  of 0xE: # BIC
-    gba.cpu.r[rd] = gba.cpu.r[rd] and not(gba.cpu.r[rs])
-    gba.cpu.setNegAndZeroFlags(gba.cpu.r[rd])
-  else: quit "Unimplemented instruction: AluOps<" & $op & ">(0x" & instr.toHex(4) & ")"
+    op2 = gba.cpu.r[rs]
+    op1 = gba.cpu.r[rd]
+  let value = case op
+    of AND: op1 and op2
+    of EOR: op1 xor op2
+    of LSL: lsl(op1, op2, shifterCarryOut)
+    of LSR: lsr[true](op1, op2, shifterCarryOut)
+    of ASR: asr[true](op1, op2, shifterCarryOut)
+    of ADC: gba.cpu.adc(op1, op2, true)
+    of SBC: gba.cpu.sbc(op1, op2, true)
+    of ROR: ror[true](op1, op2, shifterCarryOut)
+    of TST: op1 and op2
+    of NEG: gba.cpu.sub(0, op2, true)
+    of CMP: gba.cpu.sub(op1, op2, true)
+    of CMN: gba.cpu.add(op1, op2, true)
+    of ORR: op1 or op2
+    of MUL: op1 * op2
+    of BIC: op1 and not(op2)
+    of MVN: not(op2)
+  when op notin {TST, CMP, CMN}: gba.cpu.r[rd] = value
+  when op in {LSL, LSR, ASR, ROR}: gba.cpu.cpsr.carry = shifterCarryOut # carry barrel shifter
+  when op notin {ADC, SBC, NEG, CMP, CMN}: gba.cpu.setNegAndZeroFlags(value) # already handled
   gba.cpu.stepThumb()
 
 proc moveCompareAddSubtract[op, rd: static uint32](gba: GBA, instr: uint32) =
@@ -213,7 +231,7 @@ macro lutBuilder(): untyped =
     elif (i and 0b1111110000) == 0b0100010000:
       result.add newTree(nnkBracketExpr, bindSym"highRegOps", newLit(((i shr 2) and 3)), i.testBit(1).newLit(), i.testBit(0).newLit())
     elif (i and 0b1111110000) == 0b0100000000:
-      result.add newTree(nnkBracketExpr, bindSym"aluOps", newLit((i and 0x1F)))
+      result.add newTree(nnkBracketExpr, bindSym"aluOps", newLit(AluOp((i and 0x1F))))
     elif (i and 0b1110000000) == 0b0010000000:
       result.add newTree(nnkBracketExpr, bindSym"moveCompareAddSubtract", newLit((i shr 5) and 3), newLit(((i shr 2) and 7)))
     elif (i and 0b1111100000) == 0b0001100000:
