@@ -78,8 +78,11 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
   gba.cpu.r[13] = finalAddress
   if not(pop and pclr): gba.cpu.stepThumb()
 
-proc addToStackPointer[negative: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: AddToStackPointer<" & $negative & ">(0x" & instr.toHex(4) & ")"
+proc addToStackPointer[subtract: static bool](gba: GBA, instr: uint32) =
+  let offset = instr.bitsliced(0..6) shl 2
+  if subtract: gba.cpu.r[13] -= offset
+  else: gba.cpu.r[13] += offset
+  gba.cpu.stepThumb()
 
 proc loadAddress[sp: static bool, rd: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadAddress<" & $sp & "," & $rd & ">(0x" & instr.toHex(4) & ")"
