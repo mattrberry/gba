@@ -16,7 +16,8 @@ proc longBranchLink[offsetHigh: static bool](gba: GBA, instr: uint32) =
     gba.cpu.stepThumb()
 
 proc unconditionalBranch(gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: UnconditionalBranch<>(0x" & instr.toHex(4) & ")"
+  let offset = signExtend(instr.bitsliced(0..10), 10) shl 1
+  gba.cpu.setReg(15, gba.cpu.r[15] + offset)
 
 proc softwareInterrupt(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(4) & ")"
