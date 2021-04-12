@@ -69,7 +69,7 @@ proc readRotate*[T: uint16 | uint32](bus: Bus, index: uint32): uint32 =
 
 # LDRSH Rd,[odd] --> LDRSB Rd,[odd] ;sign-expand BYTE value
 proc readSigned*[T: uint8 | uint16](bus: Bus, index: uint32): uint32 =
-  result = if T is uint8 or index.testBit(0):
+  result = if T is uint8 or index.bitTest(0):
              signExtend(cast[uint32](bus.read[:uint8](index)), 7)
            else:
              signExtend(cast[uint32](bus.read[:uint16](index)), 15)

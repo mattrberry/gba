@@ -113,7 +113,7 @@ proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static
   if rd != 15: gba.cpu.stepArm()
 
 proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA, instr: uint32) =
-  if load and psrUser and instr.testBit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
+  if load and psrUser and instr.bitTest(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
   let
     rn = instr.bitsliced(16..19)
     currentMode = gba.cpu.cpsr.mode
@@ -135,7 +135,7 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
     address = finalAddress
     if not(pre): address += 4
   for i in 0 .. 15:
-    if list.testBit(i):
+    if list.bitTest(i):
       if load:
         gba.cpu.setReg(i, gba.bus.read[:uint32](address))
       else:
@@ -143,14 +143,14 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
         if i == 15: value += 4
         gba.bus[address] = gba.cpu.r[i]
       address += 4
-      if writeback and not(firstTransfer) and not(load and list.testBit(rn)): gba.cpu.setReg(rn, finalAddress)
+      if writeback and not(firstTransfer) and not(load and list.bitTest(rn)): gba.cpu.setReg(rn, finalAddress)
       firstTransfer = true
   if psrUser: gba.cpu.mode = currentMode
-  if not(load and list.testBit(15)): gba.cpu.stepArm()
+  if not(load and list.bitTest(15)): gba.cpu.stepArm()
 
 proc branch[link: static bool](gba: GBA, instr: uint32) =
   var offset = instr.bitsliced(0..23)
-  if offset.testBit(23): offset = offset or 0xFF000000'u32
+  if offset.bitTest(23): offset = offset or 0xFF000000'u32
   if link: gba.cpu.setReg(14, gba.cpu.r[15] - 4)
   gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
@@ -164,8 +164,8 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
     hasSpsr = mode != Mode.sys and mode != Mode.usr
   if msr:
     var mask = 0x00000000'u32
-    if instr.testBit(19): mask = mask or 0xFF000000'u32
-    if instr.testBit(16): mask = mask or 0x000000FF'u32
+    if instr.bitTest(19): mask = mask or 0xFF000000'u32
+    if instr.bitTest(16): mask = mask or 0x000000FF'u32
     if not(spsr) and mode == Mode.usr: mask = mask and 0x000000FF'u32
     var
       barrelOut: bool
@@ -177,7 +177,7 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
         gba.cpu.spsr = (gba.cpu.spsr and not(mask)) or value
     else:
       let thumb = gba.cpu.cpsr.thumb
-      if instr.testBit(16): gba.cpu.mode = Mode(value and 0x1F)
+      if instr.bitTest(16): gba.cpu.mode = Mode(value and 0x1F)
       gba.cpu.cpsr = (gba.cpu.cpsr and not(mask)) or value
       gba.cpu.cpsr.thumb = thumb
   else:
@@ -225,23 +225,23 @@ macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 4096'u32:
     if (i and 0b111111001111) == 0b000000001001:
-      result.add newTree(nnkBracketExpr, bindSym"multiply", i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"multiply", i.bitTest(5).newLit(), i.bitTest(4).newLit())
     elif (i and 0b111110001111) == 0b000010001001:
-      result.add newTree(nnkBracketExpr, bindSym"multiplyLong", i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit())
     elif (i and 0b111110111111) == 0b000100001001:
-      result.add newTree(nnkBracketExpr, bindSym"singleDataSwap", i.testBit(6).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTest(6).newLit())
     elif (i and 0b111111111111) == 0b000100100001:
       result.add bindSym"branchExchange"
     elif (i and 0b111000001001) == 0b000000001001:
-      result.add newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), newLit (i shr 1) and 0b11)
+      result.add newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit(), newLit (i shr 1) and 0b11)
     elif (i and 0b111000000001) == 0b011000000001:
       result.add newNilLit() # undefined instruction
     elif (i and 0b110000000000) == 0b010000000000:
-      result.add newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.testBit(9).newLit(), i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit(), i.testBit(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTest(9).newLit(), i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit(), i.bitTest(0).newLit())
     elif (i and 0b111000000000) == 0b100000000000:
-      result.add newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.testBit(8).newLit(), i.testBit(7).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit(), i.testBit(4).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit())
     elif (i and 0b111000000000) == 0b101000000000:
-      result.add newTree(nnkBracketExpr, bindSym"branch", i.testBit(8).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"branch", i.bitTest(8).newLit())
     elif (i and 0b111000000000) == 0b110000000000:
       result.add newNilLit() # coprocessor data transfer
     elif (i and 0b111100000001) == 0b111000000000:
@@ -251,9 +251,9 @@ macro lutBuilder(): untyped =
     elif (i and 0b111100000000) == 0b111100000000:
       result.add bindSym"softwareInterrupt"
     elif (i and 0b110110010000) == 0b000100000000:
-      result.add newTree(nnkBracketExpr, bindSym"statusTransfer", i.testBit(9).newLit(), i.testBit(6).newLit(), i.testBit(5).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTest(9).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
-      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.testBit(9).newLit(), newLit(DataProcessingOp((i shr 5) and 0xF)), i.testBit(4).newLit(), i.testBit(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTest(9).newLit(), newLit(DataProcessingOp((i shr 5) and 0xF)), i.bitTest(4).newLit(), i.bitTest(0).newLit())
     else:
       result.add bindSym"unimplemented"
 

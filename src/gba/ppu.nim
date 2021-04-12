@@ -1,6 +1,6 @@
 import strutils
 
-import types, display, regs, scheduler
+import types, util, display, regs, scheduler
 
 const
   width = 240
@@ -72,7 +72,7 @@ proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
   result = case address:
     of 0x00..0x01: read(dispcnt, address and 1)
     of 0x04..0x05: read(dispstat, address and 1)
-    of 0x06..0x07: (if address.testBit(0): vcount else: 0)
+    of 0x06..0x07: (if address.bitTest(0): vcount else: 0)
     of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
     else: quit "Unmapped PPU read: " & address.toHex(4)
 
