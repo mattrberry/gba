@@ -96,7 +96,7 @@ proc spRelativeLoadStore[load: static bool, rd: static uint32](gba: GBA, instr: 
   let
     offset = instr.bitsliced(0..7) shl 2
     address = gba.cpu.r[13] + offset
-  if load: gba.cpu.r[rd] = gba.bus.read[:uint32](address)
+  if load: gba.cpu.r[rd] = gba.bus.readRotate[:uint32](address)
   else: gba.bus[address] = gba.cpu.r[rd]
   gba.cpu.stepThumb()
 
@@ -105,7 +105,7 @@ proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr
     rb = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
     address = gba.cpu.r[rb] + (offset shl 2)
-  if load: gba.cpu.r[rd] = gba.bus.read[:uint16](address)
+  if load: gba.cpu.r[rd] = gba.bus.readRotate[:uint16](address)
   else: gba.bus[address] = cast[uint16](gba.cpu.r[rd])
   gba.cpu.stepThumb()
 
@@ -116,11 +116,11 @@ proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
     address = gba.cpu.r[rb]
   case bl
   of 0b00: gba.bus[address + (offset shl 2)] = gba.cpu.r[rd]
-  of 0b01: gba.cpu.r[rd] = gba.bus.read[:uint32](address + (offset shl 2))
+  of 0b01: gba.cpu.r[rd] = gba.bus.readRotate[:uint32](address + (offset shl 2))
   of 0b10: gba.bus[address + offset] = uint8(gba.cpu.r[rd] and 0xFF)
   of 0b11: gba.cpu.r[rd] = uint32(gba.bus.read[:uint8](address + offset))
   else: quit "Unimplemented instruction: LoadStoreImmOffset<" & $bl & "," & $offset & ">(0x" & instr.toHex(4) & ")"
-  gba.cpu.stepThumb();
+  gba.cpu.stepThumb()
 
 proc loadStoreSignExtended[hs, ro: static uint32](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: LoadStoreSignExtended<" & $hs & "," & $ro & ">(0x" & instr.toHex(4) & ")"
@@ -134,14 +134,14 @@ proc loadStoreRegOffset[lb, ro: static uint32](gba: GBA, instr: uint32) =
   case lb
   of 0b00: gba.bus[address] = gba.cpu.r[rd]
   of 0b01: gba.bus[address] = cast[uint8](gba.cpu.r[rd])
-  of 0b10: gba.cpu.r[rd] = gba.bus.read[:uint32](address)
+  of 0b10: gba.cpu.r[rd] = gba.bus.readRotate[:uint32](address)
   of 0b11: gba.cpu.r[rd] = gba.bus.read[:uint8](address)
   else: quit "Unimplemented instruction: LoadStoreRegOffset<" & $lb & "," & $ro & ">(0x" & instr.toHex(4) & ")"
   gba.cpu.stepThumb()
 
 proc pcRelativeLoad[rd: static uint32](gba: GBA, instr: uint32) =
   let immediate = instr.bitsliced(0..7) shl 2
-  gba.cpu.r[rd] = gba.bus.read[:uint32]((gba.cpu.r[15] and not(2'u32)) + immediate)
+  gba.cpu.r[rd] = gba.bus.readRotate[:uint32]((gba.cpu.r[15] and not(2'u32)) + immediate)
   gba.cpu.stepThumb()
 
 proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32) =
