@@ -56,8 +56,21 @@ proc multiplyLong[signed, accumulate, setCond: static bool](gba: GBA, instr: uin
     gba.cpu.cpsr.zero = value == 0
   if rdhi != 15 and rdlo != 15: gba.cpu.stepArm()
 
-proc singleDataSwap[word: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
+proc singleDataSwap[byte: static bool](gba: GBA, instr: uint32) =
+  let
+    rn = instr.bitsliced(16..19)
+    rd = instr.bitsliced(12..15)
+    rm = instr.bitsliced(0..3)
+    address = gba.cpu.r[rn]
+  if byte: # swpb
+    let tmp = gba.bus.read[:uint8](address)
+    gba.bus[address] = cast[uint8](gba.cpu.r[rm])
+    gba.cpu.setReg(rd, tmp)
+  else: # swp
+    let tmp = gba.bus.readRotate[:uint32](address)
+    gba.bus[address] = gba.cpu.r[rm]
+    gba.cpu.setReg(rd, tmp)
+  if rd != 15: gba.cpu.stepArm()
 
 proc branchExchange(gba: GBA, instr: uint32) =
   let address = gba.cpu.r[instr.bitsliced(0..3)]
