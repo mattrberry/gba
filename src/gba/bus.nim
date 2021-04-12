@@ -1,6 +1,6 @@
 import bitops, strutils
 
-import types, mmio
+import types, util, mmio
 
 proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   new result
@@ -66,3 +66,10 @@ proc readRotate*[T: uint16 | uint32](bus: Bus, index: uint32): uint32 =
     value = bus.read[:T](index).uint32
     shift = (index and (sizeof(T) - 1)) shl 3
   result = (value shr shift) or (value shl (32 - shift))
+
+# LDRSH Rd,[odd] --> LDRSB Rd,[odd] ;sign-expand BYTE value
+proc readSigned*[T: uint8 | uint16](bus: Bus, index: uint32): uint32 =
+  result = if T is uint8 or index.testBit(0):
+             signExtend(cast[uint32](bus.read[:uint8](index)), 7)
+           else:
+             signExtend(cast[uint32](bus.read[:uint16](index)), 15)

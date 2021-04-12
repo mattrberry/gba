@@ -123,11 +123,20 @@ proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
   gba.cpu.stepThumb()
 
 proc loadStoreSignExtended[hs, ro: static uint32](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: LoadStoreSignExtended<" & $hs & "," & $ro & ">(0x" & instr.toHex(4) & ")"
+  let
+    rb = instr.bitsliced(3..5)
+    rd = instr.bitsliced(0..2)
+    address = gba.cpu.r[rb] + gba.cpu.r[ro]
+  case hs
+  of 0b00: gba.bus[address] = cast[uint16](gba.cpu.r[rd]) # strh
+  of 0b01: gba.cpu.r[rd] = gba.bus.readSigned[:uint8](address) # ldsb
+  of 0b10: gba.cpu.r[rd] = gba.bus.readRotate[:uint16](address) # ldrh
+  of 0b11: gba.cpu.r[rd] = gba.bus.readSigned[:uint16](address) # ldsh
+  else: quit "Unimplemented instruction: LoadStoreSignExtended<" & $hs & "," & $ro & ">(0x" & instr.toHex(4) & ")"
+  gba.cpu.stepThumb()
 
 proc loadStoreRegOffset[lb, ro: static uint32](gba: GBA, instr: uint32) =
   let
-    ro = instr.bitsliced(6..8)
     rb = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
     address = gba.cpu.r[rb] + gba.cpu.r[ro]
