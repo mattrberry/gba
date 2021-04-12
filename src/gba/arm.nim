@@ -33,13 +33,28 @@ proc multiply[accumulate, setCond: static bool](gba: GBA, instr: uint32) =
     rs = instr.bitsliced(8..11)
     rm = instr.bitsliced(0..3)
   var value = gba.cpu.r[rm] * gba.cpu.r[rs]
-  if accumulate: value += gba.cpu.r[rn]
+  when accumulate: value += gba.cpu.r[rn]
   gba.cpu.setReg(rd, value)
-  if setCond: setNegAndZeroFlags(gba.cpu, value)
+  when setCond: setNegAndZeroFlags(gba.cpu, value)
   if rd != 15: gba.cpu.stepArm()
 
 proc multiplyLong[signed, accumulate, setCond: static bool](gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: MultipleLong<" & $signed & "," & $accumulate & "," & $setCond & ">(0x" & instr.toHex(8) & ")"
+  let
+    rdhi = instr.bitsliced(16..19)
+    rdlo = instr.bitsliced(12..15)
+    rs = instr.bitsliced(8..11)
+    rm = instr.bitsliced(0..3)
+    op1 = cast[uint64](gba.cpu.r[rm])
+    op2 = cast[uint64](gba.cpu.r[rs])
+  var value = when signed: signExtend(op1, 31) * signExtend(op2, 31)
+              else: op1 * op2
+  when accumulate: value += (cast[uint64](gba.cpu.r[rdhi]) shl 32) or gba.cpu.r[rdlo]
+  gba.cpu.setReg(rdhi, cast[uint32](value shr 32))
+  gba.cpu.setReg(rdlo, cast[uint32](value))
+  when setCond:
+    gba.cpu.cpsr.negative = value.bitTest(63)
+    gba.cpu.cpsr.zero = value == 0
+  if rdhi != 15 and rdlo != 15: gba.cpu.stepArm()
 
 proc singleDataSwap[word: static bool](gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: SingleDataSwap<" & $instr & ">(0x" & instr.toHex(8) & ")"
