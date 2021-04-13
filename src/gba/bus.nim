@@ -24,7 +24,7 @@ proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
     of 0x2: cast[ptr T](addr bus.iwram[aligned and 0x3FFFF])[]
     of 0x3: cast[ptr T](addr bus.ewram[aligned and 0x7FFF])[]
     of 0x4:
-      let mmioAddr = index and 0xFFFFFF
+      let mmioAddr = aligned and 0xFFFFFF
       when T is uint8: bus.mmio[mmioAddr]
       elif T is uint16: bus.mmio[mmioAddr].T or (bus.mmio[mmioAddr + 1].T shl 8)
       elif T is uint32: bus.mmio[mmioAddr].T or (bus.mmio[mmioAddr + 1].T shl 8) or
@@ -46,7 +46,7 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
   of 0x2: cast[ptr T](addr bus.iwram[aligned and 0x3FFFF])[] = value
   of 0x3: cast[ptr T](addr bus.ewram[aligned and 0x7FFF])[] = value
   of 0x4:
-      let mmioAddr = index and 0xFFFFFF
+      let mmioAddr = aligned and 0xFFFFFF
       bus.mmio[mmioAddr] = cast[uint8](value)
       when T is uint16 or T is uint32:
         bus.mmio[mmioAddr + 1] = cast[uint8](value shr 8)
@@ -59,7 +59,7 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
     if address > 0x17FFF: address -= 0x8000
     cast[ptr T](addr bus.gba.ppu.vram[address])[] = value
   of 0x7: cast[ptr T](addr bus.gba.ppu.oam[aligned and 0x3FF])[] = value
-  else: quit "Unmapped " & $T & " write: " & index.toHex(8) & " -> " & value.toHex(sizeof(T) * 2)
+  else: echo "Unmapped " & $T & " write: " & index.toHex(8) & " -> " & value.toHex(sizeof(T) * 2)
 
 proc readRotate*[T: uint16 | uint32](bus: Bus, index: uint32): uint32 =
   let
