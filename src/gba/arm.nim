@@ -3,14 +3,14 @@ import bitops, strformat, strutils, std/macros
 import bus, cpu, types, util
 
 type
-  DataProcessingOp = enum
-    AND, eor, sub, rsb,
-    add, adc, sbc, rsc,
-    tst, teq, cmp, cmn,
-    orr, mov, bic, mvn
+  AluOp = enum
+    AND, EOR, SUB, RSB,
+    ADD, ADC, SBC, RSC,
+    TST, TEQ, CMP, CMN,
+    ORR, MOV, BIC, MVN
 
 const
-  LogicOps = {AND, eor, tst, teq, orr, mov, bic, mvn}
+  LogicOps = {AND, EOR, TST, TEQ, ORR, MOV, BIC, MVN}
 
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
   result = ror[false](instr.bitsliced(0..7), 2 * instr.bitsliced(8..11), carryOut)
@@ -190,23 +190,22 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
     rd = instr.bitsliced(12..15)
     mode = gba.cpu.cpsr.mode
     hasSpsr = mode != Mode.sys and mode != Mode.usr
-  if msr:
-    var mask = 0x00000000'u32
+  when msr:
+    var mask: uint32
     if instr.bitTest(19): mask = mask or 0xFF000000'u32
+    if instr.bitTest(18): mask = mask or 0x00FF0000'u32
+    if instr.bitTest(17): mask = mask or 0x0000FF00'u32
     if instr.bitTest(16): mask = mask or 0x000000FF'u32
-    if not(spsr) and mode == Mode.usr: mask = mask and 0x000000FF'u32
-    var
-      barrelOut: bool
-      value = if immediate: immediateOffset(instr.bitsliced(0..11), barrelOut)
-              else: gba.cpu.r[instr.bitsliced(0..3)]
-    value = value and mask
-    if spsr:
-      if hasSpsr:
-        gba.cpu.spsr = (gba.cpu.spsr and not(mask)) or value
+    var barrelOut: bool
+    let value = when immediate: immediateOffset(instr.bitsliced(0..11), barrelOut)
+                else: gba.cpu.r[instr.bitsliced(0..3)]
+    when spsr:
+      if hasSpsr: gba.cpu.spsr = (gba.cpu.spsr and not(mask)) or (value and mask)
     else:
       let thumb = gba.cpu.cpsr.thumb
-      if instr.bitTest(16): gba.cpu.mode = Mode(value and 0x1F)
-      gba.cpu.cpsr = (gba.cpu.cpsr and not(mask)) or value
+      if mode == Mode.usr: mask = mask and 0xFF000000'u32
+      elif instr.bitTest(16): gba.cpu.mode = Mode(value and 0x1F)
+      gba.cpu.cpsr = (gba.cpu.cpsr and not(mask)) or (value and mask)
       gba.cpu.cpsr.thumb = thumb
   else:
     let value = if spsr and hasSpsr: gba.cpu.spsr
@@ -214,7 +213,7 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
     gba.cpu.setReg(rd, value)
   if not(not(msr) and rd == 15): gba.cpu.stepArm()
 
-proc dataProcessing[immediate: static bool, op: static DataProcessingOp, setCond, bit4: static bool](gba: GBA, instr: uint32) =
+proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: static bool](gba: GBA, instr: uint32) =
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitsliced(16..19)
@@ -224,29 +223,36 @@ proc dataProcessing[immediate: static bool, op: static DataProcessingOp, setCond
           else: rotateRegister[not(bit4)](gba.cpu, instr.bitsliced(0..11), shifterCarryOut)
   let value = case op
     of AND: op1 and op2
-    of eor: op1 xor op2
-    of sub: gba.cpu.sub(op1, op2, setCond)
-    of rsb: gba.cpu.sub(op2, op1, setCond)
-    of add: gba.cpu.add(op1, op2, setCond)
-    of adc: gba.cpu.adc(op1, op2, setCond)
-    of sbc: gba.cpu.sbc(op1, op2, setCond)
-    of rsc: gba.cpu.sbc(op2, op1, setCond)
-    of tst: op1 and op2
-    of teq: op1 xor op2
-    of cmp: gba.cpu.sub(op1, op2, setCond)
-    of cmn: gba.cpu.add(op1, op2, setCond)
-    of orr: op1 or op2
-    of mov: op2
-    of bic: op1 and not(op2)
-    of mvn: not(op2)
+    of EOR: op1 xor op2
+    of SUB: gba.cpu.sub(op1, op2, setCond)
+    of RSB: gba.cpu.sub(op2, op1, setCond)
+    of ADD: gba.cpu.add(op1, op2, setCond)
+    of ADC: gba.cpu.adc(op1, op2, setCond)
+    of SBC: gba.cpu.sbc(op1, op2, setCond)
+    of RSC: gba.cpu.sbc(op2, op1, setCond)
+    of TST: op1 and op2
+    of TEQ: op1 xor op2
+    of CMP: gba.cpu.sub(op1, op2, setCond)
+    of CMN: gba.cpu.add(op1, op2, setCond)
+    of ORR: op1 or op2
+    of MOV: op2
+    of BIC: op1 and not(op2)
+    of MVN: not(op2)
   when setCond:
     setNegAndZeroFlags(gba.cpu, value)
     when op in LogicOps: gba.cpu.cpsr.carry = shifterCarryOut
-    if rd == 15: quit "todo: implement data processing return " & instr.toHex(8)
-  when op notin {tst, teq, cmp, cmn}:
-    gba.cpu.setReg(rd, value)
-    if rd != 15: gba.cpu.stepArm()
-  else: gba.cpu.stepArm()
+  if rd == 15:
+    when setCond:
+      let spsr = gba.cpu.spsr
+      gba.cpu.mode = spsr.mode
+      gba.cpu.cpsr = spsr
+    when op in {TST, TEQ, CMP, CMN}: # todo: this needs to change once I start reading r15 as 12 ahead
+      if gba.cpu.cpsr.thumb: discard # pc should already be 8 ahead of current arm instr, meaning thumb will execute 4 ahead
+      else: gba.cpu.stepArm()
+    else: gba.cpu.setReg(15, value)
+  else:
+    when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
+    gba.cpu.stepArm()
 
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
@@ -281,7 +287,7 @@ macro lutBuilder(): untyped =
     elif (i and 0b110110010000) == 0b000100000000:
       result.add newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTest(9).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit())
     elif (i and 0b110000000000) == 0b000000000000:
-      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTest(9).newLit(), newLit(DataProcessingOp((i shr 5) and 0xF)), i.bitTest(4).newLit(), i.bitTest(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTest(9).newLit(), newLit(AluOp((i shr 5) and 0xF)), i.bitTest(4).newLit(), i.bitTest(0).newLit())
     else:
       result.add bindSym"unimplemented"
 

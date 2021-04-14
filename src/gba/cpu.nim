@@ -11,10 +11,8 @@ proc bank(mode: Mode): int =
     of irq: 4
     of und: 5
 
-var
-  bankedRegs: array[6, array[7, uint32]]
-  bankedSpsr: array[6, PSR]
-fill(bankedSpsr, PSR(mode: Mode.sys))
+var bankedRegs: array[6, array[8, uint32]]
+for i in 0 ..< 6: bankedRegs[i][7] = PSR(mode: Mode.sys)
 
 proc clearPipeline(cpu: var CPU)
 
@@ -59,20 +57,21 @@ proc readInstr(cpu: var CPU): uint32 =
 
 proc `mode=`*(cpu: CPU, mode: Mode) =
   let
-    oldBank = cpu.cpsr.mode.bank
+    curMode = cpu.cpsr.mode
+    oldBank = curMode.bank
     newBank = mode.bank
+  cpu.cpsr.mode = mode
   if oldBank == newBank: return
-  if mode == Mode.fiq or cpu.cpsr.mode == Mode.fiq:
-    for i in 0..<5:
+  if mode == Mode.fiq or curMode == Mode.fiq:
+    for i in 0 ..< 5:
       bankedRegs[oldBank][i] = cpu.r[8 + i]
       cpu.r[8 + i] = bankedRegs[newBank][i]
   bankedRegs[oldBank][5] = cpu.r[13]
   bankedRegs[oldBank][6] = cpu.r[14]
-  bankedSpsr[oldBank] = cpu.spsr
+  bankedRegs[oldBank][7] = cpu.spsr
   cpu.r[13] = bankedRegs[newBank][5]
   cpu.r[14] = bankedRegs[newBank][6]
-  cpu.spsr = cpu.cpsr
-  cpu.cpsr.mode = mode
+  cpu.spsr = bankedRegs[oldBank][7]
 
 proc stepArm*(cpu: var CPU) =
   cpu.r[15] += 4
