@@ -70,7 +70,7 @@ converter toReg16[T: Reg16](num: uint16): T = cast[T](num)
 proc put(reg: var Reg16, b: uint16) {.inline.} = reg = b.toReg16[: reg.type]
 
 proc read*(reg: Reg16, byteNum: SomeInteger): uint8 =
-  result = uint8((toU16(reg) shr (8 * byteNum)) and 0xFF)
+  uint8((toU16(reg) shr (8 * byteNum)) and 0xFF)
 
 proc write*(reg: var Reg16, value: uint8, byteNum: SomeInteger) =
   let

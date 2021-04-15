@@ -4,12 +4,12 @@ import bus, types, util
 
 proc bank(mode: Mode): int =
   case mode
-    of sys, usr: 0
-    of fiq: 1
-    of svc: 2
-    of abt: 3
-    of irq: 4
-    of und: 5
+  of sys, usr: 0
+  of fiq: 1
+  of svc: 2
+  of abt: 3
+  of irq: 4
+  of und: 5
 
 var bankedRegs: array[6, array[8, uint32]]
 for i in 0 ..< 6: bankedRegs[i][7] = PSR(mode: Mode.sys)
@@ -29,23 +29,23 @@ proc newCPU*(gba: GBA): CPU =
   result.clearPipeline
 
 proc checkCond*(cpu: CPU, cond: uint32): bool =
-  result = case cond
-    of 0x0: cpu.cpsr.zero
-    of 0x1: not(cpu.cpsr.zero)
-    of 0x2: cpu.cpsr.carry
-    of 0x3: not(cpu.cpsr.carry)
-    of 0x4: cpu.cpsr.negative
-    of 0x5: not(cpu.cpsr.negative)
-    of 0x6: cpu.cpsr.overflow
-    of 0x7: not(cpu.cpsr.overflow)
-    of 0x8: cpu.cpsr.carry and not(cpu.cpsr.zero)
-    of 0x9: not(cpu.cpsr.carry) or cpu.cpsr.zero
-    of 0xA: cpu.cpsr.negative == cpu.cpsr.overflow
-    of 0xB: cpu.cpsr.negative != cpu.cpsr.overflow
-    of 0xC: not(cpu.cpsr.zero) and cpu.cpsr.negative == cpu.cpsr.overflow
-    of 0xD: cpu.cpsr.zero or cpu.cpsr.negative != cpu.cpsr.overflow
-    of 0xE: true
-    else: quit "Cond 0xF is reserved"
+  case cond
+  of 0x0: cpu.cpsr.zero
+  of 0x1: not(cpu.cpsr.zero)
+  of 0x2: cpu.cpsr.carry
+  of 0x3: not(cpu.cpsr.carry)
+  of 0x4: cpu.cpsr.negative
+  of 0x5: not(cpu.cpsr.negative)
+  of 0x6: cpu.cpsr.overflow
+  of 0x7: not(cpu.cpsr.overflow)
+  of 0x8: cpu.cpsr.carry and not(cpu.cpsr.zero)
+  of 0x9: not(cpu.cpsr.carry) or cpu.cpsr.zero
+  of 0xA: cpu.cpsr.negative == cpu.cpsr.overflow
+  of 0xB: cpu.cpsr.negative != cpu.cpsr.overflow
+  of 0xC: not(cpu.cpsr.zero) and cpu.cpsr.negative == cpu.cpsr.overflow
+  of 0xD: cpu.cpsr.zero or cpu.cpsr.negative != cpu.cpsr.overflow
+  of 0xE: true
+  else: quit "Cond 0xF is reserved"
 
 proc readInstr(cpu: var CPU): uint32 =
   if cpu.cpsr.thumb:
@@ -151,12 +151,12 @@ proc ror*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint3
     result = (word shr bits) or (word shl (32 - bits))
 
 proc shift*[immediate: static bool](shiftType, word, bits: uint32, carryOut: var bool): uint32 =
-  result = case shiftType
-    of 0b00: lsl(word, bits, carryOut)
-    of 0b01: lsr[immediate](word, bits, carryOut)
-    of 0b10: asr[immediate](word, bits, carryOut)
-    of 0b11: ror[immediate](word, bits, carryOut)
-    else: quit "Invalid shift[" & $immediate & "](" & $shiftType  & "," & word.toHex(8) & "," & $bits & "," & $carryOut & ")"
+  case shiftType
+  of 0b00: lsl(word, bits, carryOut)
+  of 0b01: lsr[immediate](word, bits, carryOut)
+  of 0b10: asr[immediate](word, bits, carryOut)
+  of 0b11: ror[immediate](word, bits, carryOut)
+  else: quit "Invalid shift[" & $immediate & "](" & $shiftType  & "," & word.toHex(8) & "," & $bits & "," & $carryOut & ")"
 
 import arm, thumb
 

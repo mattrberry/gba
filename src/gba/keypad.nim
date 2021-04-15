@@ -11,10 +11,10 @@ proc newKeypad*(gba: GBA): Keypad =
   result.gba = gba
 
 proc `[]`*(keypad: Keypad, address: SomeInteger): uint8 =
-  result = case address:
-    of 0x130..0x131: read(keyinput, address and 1)
-    of 0x132..0x133: read(keycnt, address and 1)
-    else: quit "Unmapped Keypad read: " & address.toHex(4)
+  case address:
+  of 0x130..0x131: read(keyinput, address and 1)
+  of 0x132..0x133: read(keycnt, address and 1)
+  else: quit "Unmapped Keypad read: " & address.toHex(4)
 
 proc `[]=`*(keypad: Keypad, address: SomeInteger, value: uint8) =
   case address:

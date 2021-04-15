@@ -13,7 +13,7 @@ const
   LogicOps = {AND, EOR, TST, TEQ, ORR, MOV, BIC, MVN}
 
 proc immediateOffset(instr: uint32, carryOut: var bool): uint32 =
-  result = ror[false](instr.bitsliced(0..7), 2 * instr.bitsliced(8..11), carryOut)
+  ror[false](instr.bitsliced(0..7), 2 * instr.bitsliced(8..11), carryOut)
 
 proc rotateRegister[immediate: static bool](cpu: CPU, instr: uint32, carryOut: var bool): uint32 =
   let

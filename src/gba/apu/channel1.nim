@@ -41,10 +41,10 @@ proc scheduleReload*(channel: Channel1) =
   channel.scheduler.schedule(channel.frequencyTimer(), channel.step(), EventType.apuChannel1)
 
 # proc getAmplitude*(channel: Channel1): int16 =
-#   result = waveDuty[channel.duty][channel.waveDutyPosition] * 0xF
+#   waveDuty[channel.duty][channel.waveDutyPosition] * 0xF
 
 proc getAmplitude*(channel: Channel1): float32 =
-  result = waveDuty[channel.duty][channel.waveDutyPosition] / 8
+  waveDuty[channel.duty][channel.waveDutyPosition] / 8
 
 proc trigger*(channel: Channel1) =
   channel.scheduleReload()

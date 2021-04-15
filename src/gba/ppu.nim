@@ -69,12 +69,12 @@ proc endHblank(ppu: PPU): proc() = (proc() =
   ppu.gba.scheduler.schedule(0, startLine(ppu), EventType.ppu))
 
 proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
-  result = case address:
-    of 0x00..0x01: read(dispcnt, address and 1)
-    of 0x04..0x05: read(dispstat, address and 1)
-    of 0x06..0x07: (if address.bitTest(0): vcount else: 0)
-    of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
-    else: quit "Unmapped PPU read: " & address.toHex(4)
+  case address:
+  of 0x00..0x01: read(dispcnt, address and 1)
+  of 0x04..0x05: read(dispstat, address and 1)
+  of 0x06..0x07: (if address.bitTest(0): vcount else: 0)
+  of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
+  else: quit "Unmapped PPU read: " & address.toHex(4)
 
 proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   case address:
