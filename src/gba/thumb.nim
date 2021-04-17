@@ -179,11 +179,11 @@ proc aluOps[op: static AluOp](gba: GBA, instr: uint32) =
     of AND: op1 and op2
     of EOR: op1 xor op2
     of LSL: lsl(op1, op2, shifterCarryOut)
-    of LSR: lsr[true](op1, op2, shifterCarryOut)
-    of ASR: asr[true](op1, op2, shifterCarryOut)
+    of LSR: lsr[false](op1, op2, shifterCarryOut)
+    of ASR: asr[false](op1, op2, shifterCarryOut)
     of ADC: gba.cpu.adc(op1, op2, true)
     of SBC: gba.cpu.sbc(op1, op2, true)
-    of ROR: ror[true](op1, op2, shifterCarryOut)
+    of ROR: ror[false](op1, op2, shifterCarryOut)
     of TST: op1 and op2
     of NEG: gba.cpu.sub(0, op2, true)
     of CMP: gba.cpu.sub(op1, op2, true)
