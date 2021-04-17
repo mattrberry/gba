@@ -121,7 +121,7 @@ proc sbc*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
 proc lsl*(word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: return word
   carryOut = word.bitTest(32 - bits)
-  result = word shl bits
+  result = word << bits
 
 proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   let bits = if bits == 0:
@@ -129,7 +129,7 @@ proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint3
       else: 32'u32
     else: bits
   carryOut = word.bitTest(bits - 1)
-  result = word shr bits
+  result = word >> bits
 
 proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   let bits = if bits == 0:
@@ -137,7 +137,7 @@ proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint3
       else: 32'u32
     else: bits
   carryOut = word.bitTest(bits - 1)
-  result = (word shr bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
+  result = (word >> bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
 
 proc ror*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: # RRX #1
