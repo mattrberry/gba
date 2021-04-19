@@ -112,7 +112,7 @@ proc adc*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
     cpu.cpsr.overflow = (not(op1 xor op2) and (op2 xor result)).bitTest(31)
 
 proc sbc*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
-  result = op1 - op2 + uint32(cpu.cpsr.carry)
+  result = op1 - op2 - 1 + uint32(cpu.cpsr.carry)
   if setCond:
     setNegAndZeroFlags(cpu, result)
     cpu.cpsr.carry = op1 >= uint64(op2) + 1 - uint32(cpu.cpsr.carry)
