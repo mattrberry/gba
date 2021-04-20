@@ -44,7 +44,7 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
     list = instr.bitsliced(0..7)
     setBits = countSetBits(list)
     finalAddress = address + uint32(setBits * 4)
-  for i in 0 .. 7:
+  for i in 0'u8 .. 7'u8:
     if list.bitTest(i):
       if load:
         gba.cpu.r[i] = gba.bus.read[:uint32](address)
@@ -63,7 +63,7 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
     setBits = countSetBits(list) + int(pclr)
     finalAddress = address + uint32(setBits * (if pop: 4 else: -4))
   if not(pop): address = finalAddress
-  for i in 0 .. 7:
+  for i in 0'u8 .. 7'u8:
     if list.bitTest(i):
       if pop:
         gba.cpu.r[i] = gba.bus.read[:uint32](address)

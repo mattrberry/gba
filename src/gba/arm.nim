@@ -162,7 +162,7 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
   elif not(add):
     address = finalAddress
     if not(pre): address += 4
-  for i in 0 .. 15:
+  for i in 0'u8 .. 15'u8:
     if list.bitTest(i):
       if load:
         gba.cpu.setReg(i, gba.bus.read[:uint32](address))
@@ -214,6 +214,11 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
   if not(not(msr) and rd == 15): gba.cpu.stepArm()
 
 proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: static bool](gba: GBA, instr: uint32) =
+  # The PC value will be the address of the instruction, plus 8 or 12 bytes due to instruction
+  # prefetching. If the shift amount is specified in the instruction, the PC will be 8 bytes
+  # ahead. If a register is used to specify the shift amount the PC will be 12 bytes ahead.
+  const pc12Ahead = not(immediate) and bit4 # todo: make this not suck
+  when pc12Ahead: gba.cpu.r[15] += 4
   var shifterCarryOut = gba.cpu.cpsr.carry
   let
     rn = instr.bitsliced(16..19)
@@ -238,6 +243,7 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     of MOV: op2
     of BIC: op1 and not(op2)
     of MVN: not(op2)
+  when pc12Ahead: gba.cpu.r[15] -= 4
   when setCond:
     setNegAndZeroFlags(gba.cpu, value)
     when op in LogicOps: gba.cpu.cpsr.carry = shifterCarryOut

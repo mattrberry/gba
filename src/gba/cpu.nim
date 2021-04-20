@@ -132,10 +132,9 @@ proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint3
   result = word >> bits
 
 proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
-  let bits = if bits == 0:
-      if not(immediate): return word
-      else: 32'u32
-    else: bits
+  let bits = if not(immediate) and bits == 0: return word
+             elif bits == 0 or bits > 32: 32'u32
+             else: bits
   carryOut = word.bitTest(bits - 1)
   result = (word >> bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
 
