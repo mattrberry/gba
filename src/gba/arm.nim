@@ -46,7 +46,7 @@ proc multiplyLong[signed, accumulate, setCond: static bool](gba: GBA, instr: uin
     rm = instr.bitsliced(0..3)
     op1 = cast[uint64](gba.cpu.r[rm])
     op2 = cast[uint64](gba.cpu.r[rs])
-  var value = when signed: signExtend(op1, 31) * signExtend(op2, 31)
+  var value = when signed: signExtend(uint64, op1, 31) * signExtend(uint64, op2, 31)
               else: op1 * op2
   when accumulate: value += (cast[uint64](gba.cpu.r[rdhi]) shl 32) or gba.cpu.r[rdlo]
   gba.cpu.setReg(rdhi, cast[uint32](value shr 32))
@@ -101,7 +101,7 @@ proc halfwordDataTransfer[pre, add, immediate, writeback, load: static bool, op:
       if rd == 15: value += 4
       gba.bus[address] = uint16(value and 0xFFFF)
   of 0b10: # LDRSB
-    gba.cpu.setReg(rd, signExtend[uint32](gba.bus.read[:uint8](address).uint32, 7))
+    gba.cpu.setReg(rd, signExtend(uint32, gba.bus.read[:uint8](address), 7))
   else: quit fmt"unhandled halfword transfer op: {op}"
   if not pre:
     if add: address += offset

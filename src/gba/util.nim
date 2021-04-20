@@ -1,10 +1,8 @@
 proc bitTest*(value: SomeUnsignedInt, bit: SomeInteger): bool {.inline.} = bool((value shr bit) and 1)
 
-proc signExtend*[T: SomeUnsignedInt](value: T, bit: int): T =
-  if value.bitTest(bit):
-    result = value or (high(typeof(value)) shl bit)
-  else:
-    result = value
+proc signExtend*(T: typedesc, value, bit: SomeUnsignedInt): T =
+  result = cast[T](value)
+  if value.bitTest(bit): result = result or (high(T) shl bit)
 
 proc `<<`*[T: SomeUnsignedInt](value: T, count: SomeUnsignedInt): T
 
