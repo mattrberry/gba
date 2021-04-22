@@ -14,3 +14,6 @@ requires "sdl2 >= 1.0"
 
 task wasm, "wasm":
   exec "nim c -d:emscripten -d:wasm -d:release src/gba.nim"
+
+task test, "test":
+  exec "nim c -r tests/runner.nim"
