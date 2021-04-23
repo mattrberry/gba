@@ -24,7 +24,10 @@ proc rotateRegister[immediate: static bool](cpu: CPU, instr: uint32, carryOut: v
   result = shift[immediate](shiftType, cpu.r[reg], shiftAmount, carryOut)
 
 proc unimplemented(gba: GBA, instr: uint32) =
-  quit "Unimplemented opcode: 0x" & instr.toHex(8)
+  quit "Unimplemented instruction: 0x" & instr.toHex(8)
+
+proc undefined(gba: GBA, instr: uint32) =
+  quit "Undefined instruction: 0x" & instr.toHex(8)
 
 proc multiply[accumulate, setCond: static bool](gba: GBA, instr: uint32) =
   let
@@ -260,42 +263,45 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
     gba.cpu.stepArm()
 
+func bitTestLit(value, bit: SomeUnsignedInt): NimNode = bitTest(value, bit).newLit()
+
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 4096'u32:
-    if (i and 0b111111001111) == 0b000000001001:
-      result.add newTree(nnkBracketExpr, bindSym"multiply", i.bitTest(5).newLit(), i.bitTest(4).newLit())
-    elif (i and 0b111110001111) == 0b000010001001:
-      result.add newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit())
-    elif (i and 0b111110111111) == 0b000100001001:
-      result.add newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTest(6).newLit())
-    elif (i and 0b111111111111) == 0b000100100001:
-      result.add bindSym"branchExchange"
-    elif (i and 0b111000001001) == 0b000000001001:
-      result.add newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit(), newLit (i shr 1) and 0b11)
-    elif (i and 0b111000000001) == 0b011000000001:
-      result.add newNilLit() # undefined instruction
-    elif (i and 0b110000000000) == 0b010000000000:
-      result.add newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTest(9).newLit(), i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit(), i.bitTest(0).newLit())
-    elif (i and 0b111000000000) == 0b100000000000:
-      result.add newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTest(8).newLit(), i.bitTest(7).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit(), i.bitTest(4).newLit())
-    elif (i and 0b111000000000) == 0b101000000000:
-      result.add newTree(nnkBracketExpr, bindSym"branch", i.bitTest(8).newLit())
-    elif (i and 0b111000000000) == 0b110000000000:
-      result.add newNilLit() # coprocessor data transfer
-    elif (i and 0b111100000001) == 0b111000000000:
-      result.add newNilLit() # coprocessor data operation
-    elif (i and 0b111100000001) == 0b111000000001:
-      result.add newNilLit() # coprocessor register transfer
-    elif (i and 0b111100000000) == 0b111100000000:
-      result.add bindSym"softwareInterrupt"
-    elif (i and 0b110110010000) == 0b000100000000:
-      result.add newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTest(9).newLit(), i.bitTest(6).newLit(), i.bitTest(5).newLit())
-    elif (i and 0b110000000000) == 0b000000000000:
-      result.add newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTest(9).newLit(), newLit(AluOp((i shr 5) and 0xF)), i.bitTest(4).newLit(), i.bitTest(0).newLit())
-    else:
-      result.add bindSym"unimplemented"
+    result.add:
+      if (i and 0b111111001111) == 0b000000001001:
+        newTree(nnkBracketExpr, bindSym"multiply", i.bitTestLit(5), i.bitTestLit(4))
+      elif (i and 0b111110001111) == 0b000010001001:
+        newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
+      elif (i and 0b111110111111) == 0b000100001001:
+        newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTestLit(6))
+      elif (i and 0b111111111111) == 0b000100100001:
+        bindSym"branchExchange"
+      elif (i and 0b111000001001) == 0b000000001001:
+        newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), newLit(i.bitsliced(1..2)))
+      elif (i and 0b111000000001) == 0b011000000001:
+        bindSym"undefined" # undefined instruction
+      elif (i and 0b110000000000) == 0b010000000000:
+        newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTestLit(9), i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), i.bitTestLit(0))
+      elif (i and 0b111000000000) == 0b100000000000:
+        newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
+      elif (i and 0b111000000000) == 0b101000000000:
+        newTree(nnkBracketExpr, bindSym"branch", i.bitTestLit(8))
+      elif (i and 0b111000000000) == 0b110000000000:
+        bindSym"undefined" # coprocessor data transfer
+      elif (i and 0b111100000001) == 0b111000000000:
+        bindSym"undefined" # coprocessor data operation
+      elif (i and 0b111100000001) == 0b111000000001:
+        bindSym"undefined" # coprocessor register transfer
+      elif (i and 0b111100000000) == 0b111100000000:
+        bindSym"softwareInterrupt"
+      elif (i and 0b110110010000) == 0b000100000000:
+        newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTestLit(9), i.bitTestLit(6), i.bitTestLit(5))
+      elif (i and 0b110000000000) == 0b000000000000:
+        newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTestLit(9), newLit(AluOp(i.bitsliced(5..8))), i.bitTestLit(4), i.bitTestLit(0))
+      else:
+        bindSym"unimplemented"
 
 const lut = lutBuilder()
 
