@@ -1,1 +1,1 @@
-import cpu, util
+import cpu, regs, util

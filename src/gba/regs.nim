@@ -76,4 +76,4 @@ proc write*(reg: var Reg16, value: uint8, byteNum: SomeInteger) =
   let
     shift = 8 * byteNum
     mask = not(0xFF'u16 shl shift)
-  reg.put ((mask and toU16(reg)) or (value shl shift))
+  reg.put ((mask and toU16(reg)) or (value.uint16 shl shift))
