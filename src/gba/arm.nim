@@ -263,30 +263,28 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
     gba.cpu.stepArm()
 
-func bitTestLit(value, bit: SomeUnsignedInt): NimNode = bitTest(value, bit).newLit()
-
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 4096'u32:
     result.add:
       checkBits i:
-      of "000000..1001": newTree(nnkBracketExpr, bindSym"multiply", i.bitTestLit(5), i.bitTestLit(4))
-      of "00001...1001": newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
-      of "00010.001001": newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTestLit(6))
-      of "000100100001": bindSym"branchExchange"
-      of "000.....1..1": newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), newLit(i.bitsliced(1..2)))
-      of "011........1": bindSym"undefined" # undefined instruction
-      of "01..........": newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTestLit(9), i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), i.bitTestLit(0))
-      of "100.........": newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
-      of "101.........": newTree(nnkBracketExpr, bindSym"branch", i.bitTestLit(8))
-      of "110.........": bindSym"undefined" # coprocessor data transfer
-      of "1110.......0": bindSym"undefined" # coprocessor data operation
-      of "1110.......1": bindSym"undefined" # coprocessor register transfer
-      of "1111........": bindSym"softwareInterrupt"
-      of "00.10..0....": newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTestLit(9), i.bitTestLit(6), i.bitTestLit(5))
-      of "00..........": newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTestLit(9), newLit(AluOp(i.bitsliced(5..8))), i.bitTestLit(4), i.bitTestLit(0))
-      else:              bindSym"unimplemented"
+      of "000000..1001": call("multiply", i.testBit(5), i.testBit(4))
+      of "00001...1001": call("multiplyLong", i.testBit(6), i.testBit(5), i.testBit(4))
+      of "00010.001001": call("singleDataSwap", i.testBit(6))
+      of "000100100001": call("branchExchange")
+      of "000.....1..1": call("halfwordDataTransfer", i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4), i.bitsliced(1..2))
+      of "011........1": call("undefined") # undefined instruction
+      of "01..........": call("singleDataTransfer", i.testBit(9), i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4), i.testBit(0))
+      of "100.........": call("blockDataTransfer", i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4))
+      of "101.........": call("branch", i.testBit(8))
+      of "110.........": call("undefined") # coprocessor data transfer
+      of "1110.......0": call("undefined") # coprocessor data operation
+      of "1110.......1": call("undefined") # coprocessor register transfer
+      of "1111........": call("softwareInterrupt")
+      of "00.10..0....": call("statusTransfer", i.testBit(9), i.testBit(6), i.testBit(5))
+      of "00..........": call("dataProcessing", i.testBit(9), AluOp(i.bitsliced(5..8)), i.testBit(4), i.testBit(0))
+      else:              call("unimplemented")
 
 const lut = lutBuilder()
 

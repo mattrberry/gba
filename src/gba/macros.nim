@@ -37,3 +37,9 @@ macro checkBits*(num: untyped, args: varargs[untyped]): untyped =
       else:
         expectLen branch, 1
         newTree(nnkElseExpr, branch[0])
+
+func call*(fun: static string, args: varargs[NimNode, newLit]): NimNode =
+  if args.len == 0: result = bindSym(fun)
+  else:
+    result = newTree(nnkBracketExpr, bindSym(fun))
+    for arg in args: result.add arg
