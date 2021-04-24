@@ -45,13 +45,13 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
     setBits = countSetBits(list)
     finalAddress = address + uint32(setBits * 4)
   for i in 0'u8 .. 7'u8:
-    if list.bitTest(i):
+    if list.bit(i):
       if load:
         gba.cpu.r[i] = gba.bus.read[:uint32](address)
       else:
         gba.bus[address] = gba.cpu.r[i]
       address += 4
-      if not(firstTransfer) and not(load and list.bitTest(rb)): gba.cpu.r[rb] = finalAddress
+      if not(firstTransfer) and not(load and list.bit(rb)): gba.cpu.r[rb] = finalAddress
       firstTransfer = true
   gba.cpu.stepThumb()
 
@@ -64,7 +64,7 @@ proc pushPop[pop, pclr: static bool](gba: GBA, instr: uint32) =
     finalAddress = address + uint32(setBits * (if pop: 4 else: -4))
   if not(pop): address = finalAddress
   for i in 0'u8 .. 7'u8:
-    if list.bitTest(i):
+    if list.bit(i):
       if pop:
         gba.cpu.r[i] = gba.bus.read[:uint32](address)
       else:
@@ -163,7 +163,7 @@ proc highRegOps[op: static uint32, h1, h2: static bool](gba: GBA, instr: uint32)
   of 0b01: discard gba.cpu.sub(gba.cpu.r[rd], value, true)
   of 0b10: gba.cpu.setReg(rd, value)
   of 0b11:
-    gba.cpu.cpsr.thumb = value.bitTest(0)
+    gba.cpu.cpsr.thumb = value.bit(0)
     gba.cpu.setReg(15, value)
   else: quit "Unimplemented instruction: HighRegOps<" & $op & "," & $h1 & "," & $h2 & ">(0x" & instr.toHex(4) & ")"
   if op != 0b11 and not((op != 0b01 and rd == 15)): gba.cpu.stepThumb()
@@ -234,7 +234,7 @@ macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 1024'u32:
     if (i and 0b1111000000) == 0b1111000000:
-      result.add newTree(nnkBracketExpr, bindSym"longBranchLink", i.bitTest(5).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"longBranchLink", i.bit(5).newLit())
     elif (i and 0b1111100000) == 0b1110000000:
       result.add bindSym"unconditionalBranch"
     elif (i and 0b1111111100) == 0b1101111100:
@@ -242,17 +242,17 @@ macro lutBuilder(): untyped =
     elif (i and 0b1111000000) == 0b1101000000:
       result.add newTree(nnkBracketExpr, bindSym"conditionalBranch", newLit((i shr 2) and 0xF))
     elif (i and 0b1111000000) == 0b1100000000:
-      result.add newTree(nnkBracketExpr, bindSym"multipleLoadStore", i.bitTest(5).newLit(), newLit((i shr 2) and 7))
+      result.add newTree(nnkBracketExpr, bindSym"multipleLoadStore", i.bit(5).newLit(), newLit((i shr 2) and 7))
     elif (i and 0b1111011000) == 0b1011010000:
-      result.add newTree(nnkBracketExpr, bindSym"pushPop", i.bitTest(5).newLit(), i.bitTest(2).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"pushPop", i.bit(5).newLit(), i.bit(2).newLit())
     elif (i and 0b1111111100) == 0b1011000000:
-      result.add newTree(nnkBracketExpr, bindSym"addToStackPointer", i.bitTest(1).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"addToStackPointer", i.bit(1).newLit())
     elif (i and 0b1111000000) == 0b1010000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadAddress", i.bitTest(5).newLit(), newLit((i shr 2) and 7))
+      result.add newTree(nnkBracketExpr, bindSym"loadAddress", i.bit(5).newLit(), newLit((i shr 2) and 7))
     elif (i and 0b1111000000) == 0b1001000000:
-      result.add newTree(nnkBracketExpr, bindSym"spRelativeLoadStore", i.bitTest(5).newLit(), newLit((i shr 2) and 7))
+      result.add newTree(nnkBracketExpr, bindSym"spRelativeLoadStore", i.bit(5).newLit(), newLit((i shr 2) and 7))
     elif (i and 0b1111000000) == 0b1000000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadStoreHalfword", i.bitTest(5).newLit(), newLit((i and 0x1F)))
+      result.add newTree(nnkBracketExpr, bindSym"loadStoreHalfword", i.bit(5).newLit(), newLit((i and 0x1F)))
     elif (i and 0b1110000000) == 0b0110000000:
       result.add newTree(nnkBracketExpr, bindSym"loadStoreImmOffset", newLit((i shr 5) and 3), newLit((i and 0x1F)))
     elif (i and 0b1111001000) == 0b0101001000:
@@ -262,13 +262,13 @@ macro lutBuilder(): untyped =
     elif (i and 0b1111100000) == 0b0100100000:
       result.add newTree(nnkBracketExpr, bindSym"pcRelativeLoad", newLit(((i shr 2) and 7)))
     elif (i and 0b1111110000) == 0b0100010000:
-      result.add newTree(nnkBracketExpr, bindSym"highRegOps", newLit(((i shr 2) and 3)), i.bitTest(1).newLit(), i.bitTest(0).newLit())
+      result.add newTree(nnkBracketExpr, bindSym"highRegOps", newLit(((i shr 2) and 3)), i.bit(1).newLit(), i.bit(0).newLit())
     elif (i and 0b1111110000) == 0b0100000000:
       result.add newTree(nnkBracketExpr, bindSym"aluOps", newLit(AluOp((i and 0x1F))))
     elif (i and 0b1110000000) == 0b0010000000:
       result.add newTree(nnkBracketExpr, bindSym"moveCompareAddSubtract", newLit((i shr 5) and 3), newLit(((i shr 2) and 7)))
     elif (i and 0b1111100000) == 0b0001100000:
-      result.add newTree(nnkBracketExpr, bindSym"addSubtract", i.bitTest(4).newLit(), i.bitTest(3).newLit(), newLit((i and 7)))
+      result.add newTree(nnkBracketExpr, bindSym"addSubtract", i.bit(4).newLit(), i.bit(3).newLit(), newLit((i and 7)))
     elif (i and 0b1110000000) == 0b0000000000:
       result.add newTree(nnkBracketExpr, bindSym"moveShiftedReg", newLit((i shr 5) and 3), newLit((i and 0x1F)))
     else:

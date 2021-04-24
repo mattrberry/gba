@@ -55,7 +55,7 @@ proc multiplyLong[signed, accumulate, setCond: static bool](gba: GBA, instr: uin
   gba.cpu.setReg(rdhi, cast[uint32](value shr 32))
   gba.cpu.setReg(rdlo, cast[uint32](value))
   when setCond:
-    gba.cpu.cpsr.negative = value.bitTest(63)
+    gba.cpu.cpsr.negative = value.bit(63)
     gba.cpu.cpsr.zero = value == 0
   if rdhi != 15 and rdlo != 15: gba.cpu.stepArm()
 
@@ -144,7 +144,7 @@ proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static
   if rd != 15: gba.cpu.stepArm()
 
 proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA, instr: uint32) =
-  if load and psrUser and instr.bitTest(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
+  if load and psrUser and instr.bit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
   let
     rn = instr.bitsliced(16..19)
     currentMode = gba.cpu.cpsr.mode
@@ -166,7 +166,7 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
     address = finalAddress
     if not(pre): address += 4
   for i in 0'u8 .. 15'u8:
-    if list.bitTest(i):
+    if list.bit(i):
       if load:
         gba.cpu.setReg(i, gba.bus.read[:uint32](address))
       else:
@@ -174,14 +174,14 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
         if i == 15: value += 4
         gba.bus[address] = gba.cpu.r[i]
       address += 4
-      if writeback and not(firstTransfer) and not(load and list.bitTest(rn)): gba.cpu.setReg(rn, finalAddress)
+      if writeback and not(firstTransfer) and not(load and list.bit(rn)): gba.cpu.setReg(rn, finalAddress)
       firstTransfer = true
   if psrUser: gba.cpu.mode = currentMode
-  if not(load and list.bitTest(15)): gba.cpu.stepArm()
+  if not(load and list.bit(15)): gba.cpu.stepArm()
 
 proc branch[link: static bool](gba: GBA, instr: uint32) =
   var offset = instr.bitsliced(0..23)
-  if offset.bitTest(23): offset = offset or 0xFF000000'u32
+  if offset.bit(23): offset = offset or 0xFF000000'u32
   if link: gba.cpu.setReg(14, gba.cpu.r[15] - 4)
   gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
@@ -195,10 +195,10 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
     hasSpsr = mode != Mode.sys and mode != Mode.usr
   when msr:
     var mask: uint32
-    if instr.bitTest(19): mask = mask or 0xFF000000'u32
-    if instr.bitTest(18): mask = mask or 0x00FF0000'u32
-    if instr.bitTest(17): mask = mask or 0x0000FF00'u32
-    if instr.bitTest(16): mask = mask or 0x000000FF'u32
+    if instr.bit(19): mask = mask or 0xFF000000'u32
+    if instr.bit(18): mask = mask or 0x00FF0000'u32
+    if instr.bit(17): mask = mask or 0x0000FF00'u32
+    if instr.bit(16): mask = mask or 0x000000FF'u32
     var barrelOut: bool
     let value = when immediate: immediateOffset(instr.bitsliced(0..11), barrelOut)
                 else: gba.cpu.r[instr.bitsliced(0..3)]
@@ -207,7 +207,7 @@ proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) 
     else:
       let thumb = gba.cpu.cpsr.thumb
       if mode == Mode.usr: mask = mask and 0xFF000000'u32
-      elif instr.bitTest(16): gba.cpu.mode = Mode(value and 0x1F)
+      elif instr.bit(16): gba.cpu.mode = Mode(value and 0x1F)
       gba.cpu.cpsr = (gba.cpu.cpsr and not(mask)) or (value and mask)
       gba.cpu.cpsr.thumb = thumb
   else:
@@ -269,21 +269,21 @@ macro lutBuilder(): untyped =
   for i in 0'u32 ..< 4096'u32:
     result.add:
       checkBits i:
-      of "000000..1001": call("multiply", i.testBit(5), i.testBit(4))
-      of "00001...1001": call("multiplyLong", i.testBit(6), i.testBit(5), i.testBit(4))
-      of "00010.001001": call("singleDataSwap", i.testBit(6))
+      of "000000..1001": call("multiply", i.bit(5), i.bit(4))
+      of "00001...1001": call("multiplyLong", i.bit(6), i.bit(5), i.bit(4))
+      of "00010.001001": call("singleDataSwap", i.bit(6))
       of "000100100001": call("branchExchange")
-      of "000.....1..1": call("halfwordDataTransfer", i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4), i.bitsliced(1..2))
+      of "000.....1..1": call("halfwordDataTransfer", i.bit(8), i.bit(7), i.bit(6), i.bit(5), i.bit(4), i.bitsliced(1..2))
       of "011........1": call("undefined") # undefined instruction
-      of "01..........": call("singleDataTransfer", i.testBit(9), i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4), i.testBit(0))
-      of "100.........": call("blockDataTransfer", i.testBit(8), i.testBit(7), i.testBit(6), i.testBit(5), i.testBit(4))
-      of "101.........": call("branch", i.testBit(8))
+      of "01..........": call("singleDataTransfer", i.bit(9), i.bit(8), i.bit(7), i.bit(6), i.bit(5), i.bit(4), i.bit(0))
+      of "100.........": call("blockDataTransfer", i.bit(8), i.bit(7), i.bit(6), i.bit(5), i.bit(4))
+      of "101.........": call("branch", i.bit(8))
       of "110.........": call("undefined") # coprocessor data transfer
       of "1110.......0": call("undefined") # coprocessor data operation
       of "1110.......1": call("undefined") # coprocessor register transfer
       of "1111........": call("softwareInterrupt")
-      of "00.10..0....": call("statusTransfer", i.testBit(9), i.testBit(6), i.testBit(5))
-      of "00..........": call("dataProcessing", i.testBit(9), AluOp(i.bitsliced(5..8)), i.testBit(4), i.testBit(0))
+      of "00.10..0....": call("statusTransfer", i.bit(9), i.bit(6), i.bit(5))
+      of "00..........": call("dataProcessing", i.bit(9), AluOp(i.bitsliced(5..8)), i.bit(4), i.bit(0))
       else:              call("unimplemented")
 
 const lut = lutBuilder()

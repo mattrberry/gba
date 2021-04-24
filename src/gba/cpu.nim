@@ -87,7 +87,7 @@ proc setReg*(cpu: var CPU, reg: SomeInteger, value: uint32) =
   if reg == 15: cpu.clearPipeline
 
 proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
-  cpu.cpsr.negative = value.bitTest(31)
+  cpu.cpsr.negative = value.bit(31)
   cpu.cpsr.zero = value == 0
 
 proc add*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
@@ -95,32 +95,32 @@ proc add*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
   if setCond:
     setNegAndZeroFlags(cpu, result)
     cpu.cpsr.carry = result < op1
-    cpu.cpsr.overflow = (not(op1 xor op2) and (op2 xor result)).bitTest(31)
+    cpu.cpsr.overflow = (not(op1 xor op2) and (op2 xor result)).bit(31)
 
 proc sub*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
   result = op1 - op2
   if setCond:
     setNegAndZeroFlags(cpu, result)
     cpu.cpsr.carry = op1 >= op2
-    cpu.cpsr.overflow = ((op1 xor op2) and (op1 xor result)).bitTest(31)
+    cpu.cpsr.overflow = ((op1 xor op2) and (op1 xor result)).bit(31)
 
 proc adc*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
   result = op1 + op2 + uint32(cpu.cpsr.carry)
   if setCond:
     setNegAndZeroFlags(cpu, result)
     cpu.cpsr.carry = result < uint64(op1) + uint32(cpu.cpsr.carry)
-    cpu.cpsr.overflow = (not(op1 xor op2) and (op2 xor result)).bitTest(31)
+    cpu.cpsr.overflow = (not(op1 xor op2) and (op2 xor result)).bit(31)
 
 proc sbc*(cpu: var CPU, op1, op2: uint32, setCond: bool): uint32 =
   result = op1 - op2 - 1 + uint32(cpu.cpsr.carry)
   if setCond:
     setNegAndZeroFlags(cpu, result)
     cpu.cpsr.carry = op1 >= uint64(op2) + 1 - uint32(cpu.cpsr.carry)
-    cpu.cpsr.overflow = ((op1 xor op2) and (op1 xor result)).bitTest(31)
+    cpu.cpsr.overflow = ((op1 xor op2) and (op1 xor result)).bit(31)
 
 proc lsl*(word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: return word
-  carryOut = word.bitTest(32 - bits)
+  carryOut = word.bit(32 - bits)
   result = word << bits
 
 proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
@@ -128,25 +128,25 @@ proc lsr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint3
       if not(immediate): return word
       else: 32'u32
     else: bits
-  carryOut = word.bitTest(bits - 1)
+  carryOut = word.bit(bits - 1)
   result = word >> bits
 
 proc asr*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   let bits = if not(immediate) and bits == 0: return word
              elif bits == 0 or bits > 32: 32'u32
              else: bits
-  carryOut = word.bitTest(bits - 1)
+  carryOut = word.bit(bits - 1)
   result = (word >> bits) or ((0xFFFFFFFF'u32 * (word shr 31)) shl (32 - bits))
 
 proc ror*[immediate: static bool](word, bits: uint32, carryOut: var bool): uint32 =
   if bits == 0: # RRX #1
     if not(immediate): return word
     result = (word shr 1) or (uint32(carryOut) shl 31)
-    carryOut = word.bitTest(0)
+    carryOut = word.bit(0)
   else:
     var bits = bits and 31  # ROR by n where n is greater than 32 will give the same result and carry out as ROR by n-32
     if bits == 0: bits = 32 # ROR by 32 has result equal to Rm, carry out equal to bit 31 of Rm.
-    carryOut = word.bitTest(bits - 1)
+    carryOut = word.bit(bits - 1)
     result = (word shr bits) or (word shl (32 - bits))
 
 proc shift*[immediate: static bool](shiftType, word, bits: uint32, carryOut: var bool): uint32 =

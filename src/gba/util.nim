@@ -10,8 +10,8 @@ func `<<`*[T: SomeUnsignedInt](value: T, count: SomeUnsignedInt): T =
   if likely(count < sizeof(T) * 8): value shl count
   else: 0
 
-func bitTest*(value, bit: SomeUnsignedInt): bool {.inline.} = bool((value >> bit) and 1)
+func bit*(value, bit: SomeUnsignedInt): bool {.inline.} = bool((value >> bit) and 1)
 
 func signExtend*(T: typedesc, value, bit: SomeUnsignedInt): T =
   result = cast[T](value)
-  if value.bitTest(bit): result = result or (high(T) shl bit)
+  if value.bit(bit): result = result or (high(T) shl bit)
