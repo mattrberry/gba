@@ -1,6 +1,6 @@
 import bitops, strformat, strutils, std/macros
 
-import bus, cpu, types, util
+import bus, cpu, types, util, macros as m
 
 type
   AluOp = enum
@@ -270,38 +270,23 @@ macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 4096'u32:
     result.add:
-      if (i and 0b111111001111) == 0b000000001001:
-        newTree(nnkBracketExpr, bindSym"multiply", i.bitTestLit(5), i.bitTestLit(4))
-      elif (i and 0b111110001111) == 0b000010001001:
-        newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
-      elif (i and 0b111110111111) == 0b000100001001:
-        newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTestLit(6))
-      elif (i and 0b111111111111) == 0b000100100001:
-        bindSym"branchExchange"
-      elif (i and 0b111000001001) == 0b000000001001:
-        newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), newLit(i.bitsliced(1..2)))
-      elif (i and 0b111000000001) == 0b011000000001:
-        bindSym"undefined" # undefined instruction
-      elif (i and 0b110000000000) == 0b010000000000:
-        newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTestLit(9), i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), i.bitTestLit(0))
-      elif (i and 0b111000000000) == 0b100000000000:
-        newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
-      elif (i and 0b111000000000) == 0b101000000000:
-        newTree(nnkBracketExpr, bindSym"branch", i.bitTestLit(8))
-      elif (i and 0b111000000000) == 0b110000000000:
-        bindSym"undefined" # coprocessor data transfer
-      elif (i and 0b111100000001) == 0b111000000000:
-        bindSym"undefined" # coprocessor data operation
-      elif (i and 0b111100000001) == 0b111000000001:
-        bindSym"undefined" # coprocessor register transfer
-      elif (i and 0b111100000000) == 0b111100000000:
-        bindSym"softwareInterrupt"
-      elif (i and 0b110110010000) == 0b000100000000:
-        newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTestLit(9), i.bitTestLit(6), i.bitTestLit(5))
-      elif (i and 0b110000000000) == 0b000000000000:
-        newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTestLit(9), newLit(AluOp(i.bitsliced(5..8))), i.bitTestLit(4), i.bitTestLit(0))
-      else:
-        bindSym"unimplemented"
+      checkBits i:
+      of "000000..1001": newTree(nnkBracketExpr, bindSym"multiply", i.bitTestLit(5), i.bitTestLit(4))
+      of "00001...1001": newTree(nnkBracketExpr, bindSym"multiplyLong", i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
+      of "00010.001001": newTree(nnkBracketExpr, bindSym"singleDataSwap", i.bitTestLit(6))
+      of "000100100001": bindSym"branchExchange"
+      of "000.....1..1": newTree(nnkBracketExpr, bindSym"halfwordDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), newLit(i.bitsliced(1..2)))
+      of "011........1": bindSym"undefined" # undefined instruction
+      of "01..........": newTree(nnkBracketExpr, bindSym"singleDataTransfer", i.bitTestLit(9), i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4), i.bitTestLit(0))
+      of "100.........": newTree(nnkBracketExpr, bindSym"blockDataTransfer", i.bitTestLit(8), i.bitTestLit(7), i.bitTestLit(6), i.bitTestLit(5), i.bitTestLit(4))
+      of "101.........": newTree(nnkBracketExpr, bindSym"branch", i.bitTestLit(8))
+      of "110.........": bindSym"undefined" # coprocessor data transfer
+      of "1110.......0": bindSym"undefined" # coprocessor data operation
+      of "1110.......1": bindSym"undefined" # coprocessor register transfer
+      of "1111........": bindSym"softwareInterrupt"
+      of "00.10..0....": newTree(nnkBracketExpr, bindSym"statusTransfer", i.bitTestLit(9), i.bitTestLit(6), i.bitTestLit(5))
+      of "00..........": newTree(nnkBracketExpr, bindSym"dataProcessing", i.bitTestLit(9), newLit(AluOp(i.bitsliced(5..8))), i.bitTestLit(4), i.bitTestLit(0))
+      else:              bindSym"unimplemented"
 
 const lut = lutBuilder()
 

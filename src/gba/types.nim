@@ -3,9 +3,6 @@ import heapqueue
 import display
 
 type
-  Instruction* = proc(value: uint32)
-
-type
   GBA* = ref object
     bus*: Bus
     display*: Display
