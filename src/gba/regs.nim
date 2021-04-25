@@ -59,11 +59,11 @@ type
     priority* {.bitsize:2.}: cuint
     charBase* {.bitsize:2.}: cuint
     notUsed* {.bitsize:2.}: cuint
-    mosaic {.bitsize:1.}: bool
-    colorMode {.bitsize:1.}: bool
-    screenBase {.bitsize:5.}: cuint
-    affineWrap {.bitsize:1.}: bool
-    screenSize {.bitsize:2.}: cuint
+    mosaic* {.bitsize:1.}: bool
+    colorMode* {.bitsize:1.}: bool
+    screenBase* {.bitsize:5.}: cuint
+    affineWrap* {.bitsize:1.}: bool
+    screenSize* {.bitsize:2.}: cuint
 
 converter toU16(reg: Reg16): uint16 = cast[uint16](reg)
 converter toReg16[T: Reg16](num: uint16): T = cast[T](num)
