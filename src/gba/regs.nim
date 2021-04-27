@@ -31,7 +31,7 @@ type
     irqEnable* {.bitsize:1.}: bool
     irqCondition* {.bitsize:1.}: bool
 
-  PPURegs = DISPCNT | DISPSTAT | BGCNT
+  PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS
 
   DISPCNT* = object
     mode* {.bitsize:3.}: cuint
@@ -64,6 +64,10 @@ type
     screenBase* {.bitsize:5.}: cuint
     affineWrap* {.bitsize:1.}: bool
     screenSize* {.bitsize:2.}: cuint
+
+  BGOFS* = object
+    offset* {.bitsize:9.}: cuint
+    notUsed* {.bitsize:7.}: cuint
 
 converter toU16(reg: Reg16): uint16 = cast[uint16](reg)
 converter toReg16[T: Reg16](num: uint16): T = cast[T](num)

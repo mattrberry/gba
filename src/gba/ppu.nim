@@ -19,6 +19,8 @@ var
   dispstat: DISPSTAT
   vcount: uint8
   bgcnts: array[4, BGCNT]
+  bghofs: array[4, BGOFS]
+  bgvofs: array[4, BGOFS]
 
 proc startLine(ppu: PPU): proc()
 proc startHblank(ppu: PPU): proc()
@@ -29,19 +31,37 @@ proc newPPU*(gba: GBA): PPU =
   result.gba = gba
   result.startLine()()
 
+# from tonc https://www.coranac.com/tonc/text/regbg.htm
+proc seIndex(tileX, tileY, screenSize: SomeInteger): SomeInteger =
+  result = tileX + tileY * 32
+  if tileX >= 32: result += 0x03E0
+  if tileY >= 32 and screenSize == 0b11: result += 0x0400
+
 proc renderTextLayer(vram: array[0x18000, uint8], layer: SomeInteger) =
-  if not(dispcnt.controlBits.bit(layer.uint8)): return
+  if not(dispcnt.controlBits.bit(layer)): return
   let
     bgcnt = bgcnts[layer]
+    bghof = bghofs[layer].offset
+    bgvof = bgvofs[layer].offset
     screenBase = bgcnt.screenBase * 0x800
     charBase = bgcnt.charBase * 0x4000
+    (bgWidth, bgHeight) = case bgcnt.screenSize
+      of 0: (0x100'u32, 0x100'u32) # 32x32 tiles
+      of 1: (0x200'u32, 0x100'u32) # 64x32 tiles
+      of 2: (0x100'u32, 0x200'u32) # 32x64 tiles
+      of 3: (0x200'u32, 0x200'u32) # 64x64 tiles
+      else: quit "Invalid bgcnt screensize " & $bgcnt.screenSize
+    effectiveY = (vcount.uint32 + bgvof) mod bgHeight
+    tileY = effectiveY shr 3
   for col in 0'u32 ..< width.uint32:
     let
-      screenEntry = (cast[ptr uint16](unsafeAddr vram[screenBase + ((col shr 3) + (vcount.uint32 shr 3) * 32) * 2]))[]
+      effectiveX = (col + bghof) mod bgWidth
+      tileX = effectiveX shr 3
+      screenEntry = read(uint16, vram, screenBase, seIndex(tileX, tileY, bgcnt.screenSize))
       tileId = screenEntry.bitsliced(0..9)
       paletteBank = screenEntry.bitsliced(12..15).uint8
-      x = col and 7
-      y = vcount and 7
+      x = effectiveX and 7
+      y = effectiveY and 7
     var paletteIndex = (vram[charBase + tileId * 0x20 + y * 4 + (x shr 1)] shr ((x and 1) * 4)) and 0xF
     if paletteIndex > 0: paletteIndex += paletteBank shl 4
     layerBuffers[layer][col] = paletteIndex
@@ -123,4 +143,8 @@ proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   of 0x04..0x05: write(dispstat, value, address and 1)
   of 0x06..0x07: discard # vcount
   of 0x08..0x0F: write(bgcnts[(address - 0x08) div 2], value, address and 1)
+  of 0x10..0x1F:
+    let layer = (address - 0x10) div 4
+    if address.bit(1): write(bgvofs[layer], value, address and 1)
+    else:              write(bghofs[layer], value, address and 1)
   else: echo "Unmapped PPU write: ", address.toHex(4), " -> ", value.toHex(2)
