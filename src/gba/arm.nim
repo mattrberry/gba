@@ -1,6 +1,6 @@
 import bitops, strformat, strutils, std/macros
 
-import bus, cpu, types, util, macros as m
+import bus, cpu, types, util, macros as _
 
 type
   AluOp = enum
@@ -94,17 +94,19 @@ proc halfwordDataTransfer[pre, add, immediate, writeback, load: static bool, op:
     else: address -= offset
   case op
   of 0b00: quit fmt"SWP instruction ({instr.toHex(8)})"
-  of 0b01: # LDRH / STRH
-    if load:
+  of 0b01:
+    if load: # ldrh
       gba.cpu.setReg(rd, gba.bus.readRotate[:uint16](address))
-    else:
+    else: # strh
       var value = gba.cpu.r[rd]
       # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
       # value will be address of the instruction plus 12.
       if rd == 15: value += 4
       gba.bus[address] = uint16(value and 0xFFFF)
-  of 0b10: # LDRSB
+  of 0b10: # ldrsb
     gba.cpu.setReg(rd, signExtend(uint32, gba.bus.read[:uint8](address), 7))
+  of 0b11: # ldrsh
+    gba.cpu.setReg(rd, gba.bus.readSigned[:uint16](address))
   else: quit fmt"unhandled halfword transfer op: {op}"
   if not pre:
     if add: address += offset
@@ -141,7 +143,7 @@ proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static
     else: address -= offset
   # Post-index is always a writeback; don't writeback if value is loaded to base
   if (writeback or not(pre)) and not(load and rn == rd): gba.cpu.setReg(rn, address)
-  if rd != 15: gba.cpu.stepArm()
+  if not(load and rd == 15): gba.cpu.stepArm()
 
 proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA, instr: uint32) =
   if load and psrUser and instr.bit(15): quit fmt"TODO: Implement LDMS w/ r15 in the list ({instr.toHex(8)})"
@@ -172,7 +174,7 @@ proc blockDataTransfer[pre, add, psrUser, writeback, load: static bool](gba: GBA
       else:
         var value = gba.cpu.r[i]
         if i == 15: value += 4
-        gba.bus[address] = gba.cpu.r[i]
+        gba.bus[address] = value
       address += 4
       if writeback and not(firstTransfer) and not(load and list.bit(rn)): gba.cpu.setReg(rn, finalAddress)
       firstTransfer = true
