@@ -1,6 +1,6 @@
 import bitops, strutils, std/macros
 
-import bus, cpu, types, util
+import bus, cpu, types, util, macros as _
 
 type
   AluOp = enum
@@ -233,46 +233,28 @@ proc moveShiftedReg[op, offset: static uint32](gba: GBA, instr: uint32) =
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 1024'u32:
-    if (i and 0b1111000000) == 0b1111000000:
-      result.add newTree(nnkBracketExpr, bindSym"longBranchLink", i.bit(5).newLit())
-    elif (i and 0b1111100000) == 0b1110000000:
-      result.add bindSym"unconditionalBranch"
-    elif (i and 0b1111111100) == 0b1101111100:
-      result.add bindSym"softwareInterrupt"
-    elif (i and 0b1111000000) == 0b1101000000:
-      result.add newTree(nnkBracketExpr, bindSym"conditionalBranch", newLit((i shr 2) and 0xF))
-    elif (i and 0b1111000000) == 0b1100000000:
-      result.add newTree(nnkBracketExpr, bindSym"multipleLoadStore", i.bit(5).newLit(), newLit((i shr 2) and 7))
-    elif (i and 0b1111011000) == 0b1011010000:
-      result.add newTree(nnkBracketExpr, bindSym"pushPop", i.bit(5).newLit(), i.bit(2).newLit())
-    elif (i and 0b1111111100) == 0b1011000000:
-      result.add newTree(nnkBracketExpr, bindSym"addToStackPointer", i.bit(1).newLit())
-    elif (i and 0b1111000000) == 0b1010000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadAddress", i.bit(5).newLit(), newLit((i shr 2) and 7))
-    elif (i and 0b1111000000) == 0b1001000000:
-      result.add newTree(nnkBracketExpr, bindSym"spRelativeLoadStore", i.bit(5).newLit(), newLit((i shr 2) and 7))
-    elif (i and 0b1111000000) == 0b1000000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadStoreHalfword", i.bit(5).newLit(), newLit((i and 0x1F)))
-    elif (i and 0b1110000000) == 0b0110000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadStoreImmOffset", newLit((i shr 5) and 3), newLit((i and 0x1F)))
-    elif (i and 0b1111001000) == 0b0101001000:
-      result.add newTree(nnkBracketExpr, bindSym"loadStoreSignExtended", newLit((i shr 4) and 3), newLit((i and 7)))
-    elif (i and 0b1111001000) == 0b0101000000:
-      result.add newTree(nnkBracketExpr, bindSym"loadStoreRegOffset", newLit((i shr 4) and 3), newLit((i and 7)))
-    elif (i and 0b1111100000) == 0b0100100000:
-      result.add newTree(nnkBracketExpr, bindSym"pcRelativeLoad", newLit(((i shr 2) and 7)))
-    elif (i and 0b1111110000) == 0b0100010000:
-      result.add newTree(nnkBracketExpr, bindSym"highRegOps", newLit(((i shr 2) and 3)), i.bit(1).newLit(), i.bit(0).newLit())
-    elif (i and 0b1111110000) == 0b0100000000:
-      result.add newTree(nnkBracketExpr, bindSym"aluOps", newLit(AluOp((i and 0x1F))))
-    elif (i and 0b1110000000) == 0b0010000000:
-      result.add newTree(nnkBracketExpr, bindSym"moveCompareAddSubtract", newLit((i shr 5) and 3), newLit(((i shr 2) and 7)))
-    elif (i and 0b1111100000) == 0b0001100000:
-      result.add newTree(nnkBracketExpr, bindSym"addSubtract", i.bit(4).newLit(), i.bit(3).newLit(), newLit((i and 7)))
-    elif (i and 0b1110000000) == 0b0000000000:
-      result.add newTree(nnkBracketExpr, bindSym"moveShiftedReg", newLit((i shr 5) and 3), newLit((i and 0x1F)))
-    else:
-      result.add bindSym"unimplemented"
+    result.add:
+      checkBits i:
+      of "1111......": call("longBranchLink", i.bit(5))
+      of "11100.....": call("unconditionalBranch")
+      of "11011111..": call("softwareInterrupt")
+      of "1101......": call("conditionalBranch", i.bitsliced(2..5))
+      of "1100......": call("multipleLoadStore", i.bit(5), i.bitsliced(2..4))
+      of "1011.10...": call("pushPop", i.bit(5), i.bit(2))
+      of "10110000..": call("addToStackPointer", i.bit(1))
+      of "1010......": call("loadAddress", i.bit(5), i.bitsliced(2..4))
+      of "1001......": call("spRelativeLoadStore", i.bit(5), i.bitsliced(2..4))
+      of "1000......": call("loadStoreHalfword", i.bit(5), i.bitsliced(0..4))
+      of "011.......": call("loadStoreImmOffset", i.bitsliced(5..6), i.bitsliced(0..4))
+      of "0101..1...": call("loadStoreSignExtended", i.bitsliced(4..5), i.bitsliced(0..2))
+      of "0101..0...": call("loadStoreRegOffset", i.bitsliced(4..5), i.bitsliced(0..2))
+      of "01001.....": call("pcRelativeLoad", i.bitsliced(2..4))
+      of "010001....": call("highRegOps", i.bitsliced(2..3), i.bit(1), i.bit(0))
+      of "010000....": call("aluOps", AluOp(i.bitsliced(0..4)))
+      of "001.......": call("moveCompareAddSubtract", i.bitsliced(5..6), i.bitsliced(2..4))
+      of "00011.....": call("addSubtract", i.bit(4), i.bit(3), i.bitsliced(0..2))
+      of "000.......": call("moveShiftedReg", i.bitsliced(5..6), i.bitsliced(0..4))
+      else:            call("unimplemented")
 
 const lut = lutBuilder()
 
