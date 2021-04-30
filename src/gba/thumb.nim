@@ -104,9 +104,9 @@ proc loadStoreHalfword[load: static bool, offset: static uint32](gba: GBA, instr
   let
     rb = instr.bitsliced(3..5)
     rd = instr.bitsliced(0..2)
-    address = gba.cpu.r[rb] + (offset shl 2)
-  if load: gba.cpu.r[rd] = gba.bus.readRotate[:uint16](address)
-  else: gba.bus[address] = cast[uint16](gba.cpu.r[rd])
+    address = gba.cpu.r[rb] + (offset shl 1)
+  if load: gba.cpu.r[rd] = gba.bus.readRotate[:uint16](address) # ldrh
+  else: gba.bus[address] = cast[uint16](gba.cpu.r[rd]) # strh
   gba.cpu.stepThumb()
 
 proc loadStoreImmOffset[bl, offset: static uint32](gba: GBA, instr: uint32) =
