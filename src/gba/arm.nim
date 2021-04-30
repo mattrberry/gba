@@ -188,7 +188,11 @@ proc branch[link: static bool](gba: GBA, instr: uint32) =
   gba.cpu.setReg(15, gba.cpu.r[15] + offset * 4)
 
 proc softwareInterrupt(gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(8) & ")"
+  gba.cpu.spsr = gba.cpu.cpsr
+  gba.cpu.mode = Mode.svc
+  gba.cpu.cpsr.irqDisable = true
+  gba.cpu.r[14] = gba.cpu.r[15] - 4
+  gba.cpu.setReg(15, 0x08)
 
 proc statusTransfer[immediate, spsr, msr: static bool](gba: GBA, instr: uint32) =
   let

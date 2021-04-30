@@ -27,7 +27,12 @@ proc unconditionalBranch(gba: GBA, instr: uint32) =
   gba.cpu.setReg(15, gba.cpu.r[15] + offset)
 
 proc softwareInterrupt(gba: GBA, instr: uint32) =
-  quit "Unimplemented instruction: SoftwareInterrupt<>(0x" & instr.toHex(4) & ")"
+  gba.cpu.spsr = gba.cpu.cpsr
+  gba.cpu.mode = Mode.svc
+  gba.cpu.cpsr.irqDisable = true
+  gba.cpu.cpsr.thumb = false
+  gba.cpu.r[14] = gba.cpu.r[15] - 2
+  gba.cpu.setReg(15, 0x08)
 
 proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(cond):
