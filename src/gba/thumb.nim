@@ -44,6 +44,14 @@ proc multipleLoadStore[load: static bool, rb: static uint32](gba: GBA, instr: ui
     list = instr.bitsliced(0..7)
     setBits = countSetBits(list)
     finalAddress = address + uint32(setBits * 4)
+  if unlikely(list == 0):
+    when load:
+      gba.cpu.setReg(15, gba.bus.read[:uint32](address))
+    else:
+      gba.bus[address] = gba.cpu.r[15] + 2
+      gba.cpu.stepThumb()
+    gba.cpu.r[rb] += 0x40
+    return
   for i in 0'u8 .. 7'u8:
     if list.bit(i):
       if load:
