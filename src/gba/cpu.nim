@@ -73,6 +73,9 @@ proc `mode=`*(cpu: CPU, mode: Mode) =
   cpu.r[14] = bankedRegs[newBank][6]
   cpu.spsr = bankedRegs[oldBank][7]
 
+proc interrupt*(cpu: CPU) =
+  echo "interrupt"
+
 proc stepArm*(cpu: var CPU) =
   cpu.r[15] += 4
 

@@ -69,7 +69,24 @@ type
     irqEnable* {.bitsize:1.}: bool
     irqCondition* {.bitsize:1.}: bool
 
-  MiscRegs = WAITCNT
+  MiscRegs = INTERRUPT | WAITCNT
+
+  INTERRUPT* = object
+    vblank* {.bitsize:1.}: bool
+    hblank* {.bitsize:1.}: bool
+    vcount* {.bitsize:1.}: bool
+    timer0* {.bitsize:1.}: bool
+    timer1* {.bitsize:1.}: bool
+    timer2* {.bitsize:1.}: bool
+    timer3* {.bitsize:1.}: bool
+    serial* {.bitsize:1.}: bool
+    dma0* {.bitsize:1.}: bool
+    dma1* {.bitsize:1.}: bool
+    dma2* {.bitsize:1.}: bool
+    dma3* {.bitsize:1.}: bool
+    keypad* {.bitsize:1.}: bool
+    gamepak* {.bitsize:1.}: bool
+    notUsed* {.bitsize:2.}: cuint
 
   WAITCNT* = object
     sramWaitControl* {.bitsize:2.}: cuint
@@ -84,8 +101,8 @@ type
     gamepackPrefetchBuffer* {.bitsize:1.}: bool
     gamepackTypeFlag* {.bitsize:1.}: bool
 
-converter toU16(reg: Reg16): uint16 = cast[uint16](reg)
-converter toReg16[T: Reg16](num: uint16): T = cast[T](num)
+converter toU16*(reg: Reg16): uint16 = cast[uint16](reg)
+converter toReg16*[T: Reg16](num: uint16): T = cast[T](num)
 proc put(reg: var Reg16, b: uint16) {.inline.} = reg = b.toReg16[: reg.type]
 
 proc read*(reg: Reg16, byteNum: SomeInteger): uint8 =

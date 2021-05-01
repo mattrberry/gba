@@ -10,6 +10,7 @@ type
     cpu*: CPU
     ppu*: PPU
     keypad*: Keypad
+    interrupts*: Interrupts
     scheduler*: Scheduler
 
   APU* = ref object
@@ -35,6 +36,7 @@ type
     r*: array[16, uint32]
     cpsr*: PSR
     spsr*: PSR
+    halted*: bool
 
   PPU* = ref object
     gba*: GBA
@@ -43,6 +45,9 @@ type
     oam*: array[0x400, uint8]
 
   Keypad* = ref object
+    gba*: GBA
+
+  Interrupts* = ref object
     gba*: GBA
 
   Scheduler* = ref object
@@ -67,6 +72,7 @@ type
     timer1
     timer2
     timer3
+    interrupt
 
   Mode* = enum
     usr = 0b10000
