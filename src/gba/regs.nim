@@ -1,35 +1,5 @@
 type
-  Reg16 = KeypadRegs | PPURegs
-
-  KeypadRegs = KEYINPUT | KEYCNT
-
-  KEYINPUT* = object
-    a* {.bitsize:1.}: bool
-    b* {.bitsize:1.}: bool
-    select* {.bitsize:1.}: bool
-    start* {.bitsize:1.}: bool
-    right* {.bitsize:1.}: bool
-    left* {.bitsize:1.}: bool
-    up* {.bitsize:1.}: bool
-    down* {.bitsize:1.}: bool
-    r* {.bitsize:1.}: bool
-    l* {.bitsize:1.}: bool
-    notUsed* {.bitsize:6.}: cuint
-
-  KEYCNT* = object
-    a* {.bitsize:1.}: bool
-    b* {.bitsize:1.}: bool
-    select* {.bitsize:1.}: bool
-    start* {.bitsize:1.}: bool
-    right* {.bitsize:1.}: bool
-    left* {.bitsize:1.}: bool
-    up* {.bitsize:1.}: bool
-    down* {.bitsize:1.}: bool
-    r* {.bitsize:1.}: bool
-    l* {.bitsize:1.}: bool
-    notUsed* {.bitsize:4.}: cuint
-    irqEnable* {.bitsize:1.}: bool
-    irqCondition* {.bitsize:1.}: bool
+  Reg16 = PPURegs | KeypadRegs | MiscRegs
 
   PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS
 
@@ -68,6 +38,51 @@ type
   BGOFS* = object
     offset* {.bitsize:9.}: cuint
     notUsed* {.bitsize:7.}: cuint
+
+  KeypadRegs = KEYINPUT | KEYCNT
+
+  KEYINPUT* = object
+    a* {.bitsize:1.}: bool
+    b* {.bitsize:1.}: bool
+    select* {.bitsize:1.}: bool
+    start* {.bitsize:1.}: bool
+    right* {.bitsize:1.}: bool
+    left* {.bitsize:1.}: bool
+    up* {.bitsize:1.}: bool
+    down* {.bitsize:1.}: bool
+    r* {.bitsize:1.}: bool
+    l* {.bitsize:1.}: bool
+    notUsed* {.bitsize:6.}: cuint
+
+  KEYCNT* = object
+    a* {.bitsize:1.}: bool
+    b* {.bitsize:1.}: bool
+    select* {.bitsize:1.}: bool
+    start* {.bitsize:1.}: bool
+    right* {.bitsize:1.}: bool
+    left* {.bitsize:1.}: bool
+    up* {.bitsize:1.}: bool
+    down* {.bitsize:1.}: bool
+    r* {.bitsize:1.}: bool
+    l* {.bitsize:1.}: bool
+    notUsed* {.bitsize:4.}: cuint
+    irqEnable* {.bitsize:1.}: bool
+    irqCondition* {.bitsize:1.}: bool
+
+  MiscRegs = WAITCNT
+
+  WAITCNT* = object
+    sramWaitControl* {.bitsize:2.}: cuint
+    waitState0FirstAccess* {.bitsize:2.}: cuint
+    waitState0SecondAccess* {.bitsize:1.}: cuint
+    waitState1FirstAccess* {.bitsize:2.}: cuint
+    waitState1SecondAccess* {.bitsize:1.}: cuint
+    waitState2FirstAccess* {.bitsize:2.}: cuint
+    waitState2SecondAccess* {.bitsize:1.}: cuint
+    phiTerminalOutput* {.bitsize:2.}: cuint
+    notUsed* {.bitsize:1.}: bool
+    gamepackPrefetchBuffer* {.bitsize:1.}: bool
+    gamepackTypeFlag* {.bitsize:1.}: bool
 
 converter toU16(reg: Reg16): uint16 = cast[uint16](reg)
 converter toReg16[T: Reg16](num: uint16): T = cast[T](num)
