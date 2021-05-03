@@ -9,8 +9,6 @@ type
     TST, NEG, CMP, CMN,
     ORR, MUL, BIC, MVN
 
-{.push gcsafe, locks: 0.}
-
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented opcode: 0x" & instr.toHex(4)
 
@@ -244,8 +242,6 @@ proc moveShiftedReg[op, offset: static uint32](gba: GBA, instr: uint32) =
   gba.cpu.cpsr.carry = shifterCarryOut
   gba.cpu.setNegAndZeroFlags(value)
   gba.cpu.stepThumb()
-
-{.pop.}
 
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)

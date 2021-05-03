@@ -22,7 +22,6 @@ proc rotateRegister[immediate: static bool](cpu: CPU, instr: uint32, carryOut: v
     shiftAmount = if immediate: instr.bitsliced(7..11)
                   else: cpu.r[instr.bitsliced(8..11)] and 0xFF
   result = shift[immediate](shiftType, cpu.r[reg], shiftAmount, carryOut)
-{.push gcsafe, locks: 0.}
 
 proc unimplemented(gba: GBA, instr: uint32) =
   quit "Unimplemented instruction: 0x" & instr.toHex(8)
@@ -270,7 +269,6 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
     gba.cpu.stepArm()
 
-{.pop.}
 
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
