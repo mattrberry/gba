@@ -1,4 +1,4 @@
-import types, regs, cpu, scheduler
+import types, regs, scheduler
 
 var
   ime: bool
@@ -20,7 +20,7 @@ proc `[]`*(interrupts: Interrupts, address: SomeInteger): uint8 =
   of 0x202..0x203: read(regIf, address and 1)
   of 0x208: uint8(ime)
   of 0x209: 0'u8
-  else: quit "Unmapped interrupts read: ", address.toHex(4)
+  else: quit "Unmapped interrupts read: " & address.toHex(4)
 
 proc `[]=`*(interrupts: Interrupts, address: SomeInteger, value: uint8) =
   case address:
@@ -33,5 +33,5 @@ proc `[]=`*(interrupts: Interrupts, address: SomeInteger, value: uint8) =
 
 proc checkInterrupts(interrupts: Interrupts): proc() = (proc() =
   if (regIe and regIf) > 0:
-    interrupts.gba.cpu.halted = false
-    if ime: interrupts.gba.cpu.interrupt())
+    interrupts.gba.cpu.halted = false)
+    #if ime: interrupts.gba.cpu.interrupt())
