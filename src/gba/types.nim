@@ -1,6 +1,6 @@
 import heapqueue
 
-import display
+import display, regs
 
 type
   GBA* = ref object
@@ -37,7 +37,7 @@ type
     cpsr*: PSR
     spsr*: PSR
     halted*: bool
-    interrupt*: proc(c: CPU) 
+    interrupt*: proc(cpu: var CPU)
 
 
   PPU* = ref object
@@ -51,6 +51,9 @@ type
 
   Interrupts* = ref object
     gba*: GBA
+    ime*: bool
+    regIe*: INTERRUPT
+    regIf*: INTERRUPT
 
   Scheduler* = ref object
     events*: HeapQueue[Event]

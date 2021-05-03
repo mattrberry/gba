@@ -15,10 +15,12 @@ var bankedRegs: array[6, array[8, uint32]]
 for i in 0 ..< 6: bankedRegs[i][7] = PSR(mode: Mode.sys)
 
 proc clearPipeline(cpu: var CPU)
+proc interrupt(cpu: var CPU)
 
 proc newCPU*(gba: GBA): CPU =
   new result
   result.gba = gba
+  result.interrupt = interrupt
   result.cpsr = PSR(mode: Mode.sys)
   result.spsr = PSR(mode: Mode.sys)
   bankedRegs[Mode.usr.bank][5] = 0x03007F00
@@ -73,9 +75,6 @@ proc `mode=`*(cpu: CPU, mode: Mode) =
   cpu.r[14] = bankedRegs[newBank][6]
   cpu.spsr = bankedRegs[oldBank][7]
 
-proc interrupt*(cpu: CPU) =
-  echo "interrupt"
-
 proc stepArm*(cpu: var CPU) =
   cpu.r[15] += 4
 
@@ -88,6 +87,16 @@ proc clearPipeline(cpu: var CPU) =
 proc setReg*(cpu: var CPU, reg: SomeInteger, value: uint32) =
   cpu.r[reg] = value
   if reg == 15: cpu.clearPipeline
+
+proc interrupt(cpu: var CPU) =
+  if not(cpu.cpsr.irqDisable):
+    let lr = cpu.r[15] - (if cpu.cpsr.thumb: 0 else: 4)
+    cpu.spsr = cpu.cpsr
+    cpu.mode = Mode.irq
+    cpu.cpsr.thumb = false
+    cpu.cpsr.irqDisable = true
+    cpu.r[14] = lr
+    cpu.setReg(15, 0x18)
 
 proc setNegAndZeroFlags*(cpu: var CPU, value: uint32) =
   cpu.cpsr.negative = value.bit(31)
