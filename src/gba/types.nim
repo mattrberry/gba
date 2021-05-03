@@ -37,6 +37,8 @@ type
     cpsr*: PSR
     spsr*: PSR
     halted*: bool
+    interrupt*: proc(c: CPU) 
+
 
   PPU* = ref object
     gba*: GBA
