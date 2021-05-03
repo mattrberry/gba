@@ -269,6 +269,7 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
     gba.cpu.stepArm()
 
+
 # todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)

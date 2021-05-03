@@ -3,6 +3,9 @@ import sdl2
 
 import gba/[apu, bus, cpu, display, keypad, ppu, interrupts, scheduler, types]
 
+proc interrupt(cpu: Cpu) =
+  echo "Interrupt"
+
 proc newGBA(bios, rom: string): GBA =
   new result
   result.scheduler = newScheduler()
@@ -13,6 +16,7 @@ proc newGBA(bios, rom: string): GBA =
   result.ppu = newPPU(result)
   result.keypad = newKeypad(result)
   result.interrupts = newInterrupts(result)
+  result.cpu.interrupt = gba.interrupt
 
 proc runFrame(gba: GBA) =
   for _ in 0 ..< 280896:
