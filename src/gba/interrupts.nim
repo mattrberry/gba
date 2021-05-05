@@ -5,9 +5,9 @@ proc newInterrupts*(gba: GBA): Interrupts =
   result.gba = gba
 
 proc checkInterrupts(interrupts: Interrupts): proc() = (proc() =
-   if (interrupts.regIe and interrupts.regIf) > 0:
-     interrupts.gba.cpu.halted = false
-     if interrupts.ime: interrupts.gba.cpu.interrupt(interrupts.gba.cpu))
+  if (interrupts.regIe and interrupts.regIf) > 0:
+    interrupts.gba.cpu.halted = false
+    if interrupts.ime: interrupts.gba.cpu.interrupt(interrupts.gba.cpu))
 
 proc scheduleCheck*(interrupts: Interrupts) {.gcsafe locks: 0.} =
   interrupts.gba.scheduler.schedule(0, checkInterrupts(interrupts), EventType.interrupt)

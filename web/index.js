@@ -97,11 +97,6 @@ document.querySelectorAll("[button]").forEach((element) =>
 );
 
 var Module = {
-  print: (() => {
-    let element = document.getElementById("output");
-    return (text) =>
-      (element.innerHTML += text.replace("\n", "<br>", "g") + "<br>");
-  })(),
   canvas: (() => document.getElementById("canvas"))(),
 };
 
