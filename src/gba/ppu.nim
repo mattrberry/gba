@@ -57,7 +57,7 @@ proc renderTextLayer(vram: array[0x18000, uint8], layer: SomeInteger) =
     let
       effectiveX = (col + bghof) mod bgWidth
       tileX = effectiveX shr 3
-      screenEntry = read(uint16, vram, screenBase, seIndex(tileX, tileY, bgcnt.screenSize))
+      screenEntry = read[uint16](vram, screenBase, seIndex(tileX, tileY, bgcnt.screenSize))
       tileId = screenEntry.bitsliced(0..9)
       paletteBank = screenEntry.bitsliced(12..15).uint8
       x = (effectiveX and 7) xor (7 * screenEntry.bitsliced(10..10))
@@ -73,7 +73,7 @@ proc calculateColor(pram: array[0x400, uint8], col: SomeInteger): uint16 =
       if bgcnt.priority == priority:
         let palette = layerBuffers[layer][col]
         if palette > 0:
-          return read(uint16, pram, 0'u16, palette)
+          return read[uint16](pram, 0'u16, palette)
   return 0
 
 proc composite(pram: array[0x400, uint8], scanline: ptr Scanline) =

@@ -55,28 +55,28 @@ suite "read":
   let a = [0x01'u8, 0x02'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8]
 
   test "same type no offset":
-    check(read(uint8, a, 0, 0) == 0x01)
+    check(read[uint8](a, 0, 0) == 0x01)
 
   test "same type base offset":
-    check(read(uint8, a, 1, 0) == 0x02)
+    check(read[uint8](a, 1, 0) == 0x02)
 
   test "same type type offset":
-    check(read(uint8, a, 0, 1) == 0x02)
+    check(read[uint8](a, 0, 1) == 0x02)
 
   test "same type both offset":
-    check(read(uint8, a, 1, 1) == 0x03)
+    check(read[uint8](a, 1, 1) == 0x03)
 
   test "diff type no offset":
-    check(read(uint16, a, 0, 0) == 0x0201)
+    check(read[uint16](a, 0, 0) == 0x0201)
 
   test "diff type base offset":
-    check(read(uint16, a, 1, 0) == 0x0302)
+    check(read[uint16](a, 1, 0) == 0x0302)
 
   test "diff type type offset":
-    check(read(uint16, a, 0, 1) == 0x0403)
+    check(read[uint16](a, 0, 1) == 0x0403)
 
   test "diff type both offset":
-    check(read(uint16, a, 1, 1) == 0x0504)
+    check(read[uint16](a, 1, 1) == 0x0504)
 
 
 suite "write":
