@@ -24,8 +24,5 @@ func `[]=`[T](p: ptr T, offset: int, val: T) {.inline.} = (p + offset)[] = val
 func read*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger): T {.inline.} =
   cast[ptr T](unsafeAddr(val[a.int]))[b.int]
 
-func write*[K](T: typedesc, val: openarray[K], a, b: SomeInteger, value: any) {.inline.} =
-  cast[ptr T](cast[ptr K](unsafeAddr(val)) + a.int)[b.int] = cast[T](value)
-
-# func write*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger, value: auto) {.inline.} =
-  # cast[ptr T](unsafeAddr(val[a.int]))[b.int] = cast[T](value)
+func write*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger, value: T) {.inline.} =
+  cast[ptr T](unsafeAddr(val[a.int]))[b.int] = value

@@ -86,33 +86,33 @@ suite "write":
     a = [0x01'u8, 0x02'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8]
 
   test "same type no offset":
-    write(uint8, a, 0, 0, 0x10)
+    write(a, 0, 0, 0x10'u8)
     check(a == [0x10'u8, 0x02'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "same type base offset":
-    write(uint8, a, 1, 0, 0x20)
+    write(a, 1, 0, 0x20'u8)
     check(a == [0x01'u8, 0x20'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "same type type offset":
-    write(uint8, a, 0, 1, 0x20)
+    write(a, 0, 1, 0x20'u8)
     check(a == [0x01'u8, 0x20'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "same type both offset":
-    write(uint8, a, 1, 1, 0x30)
+    write(a, 1, 1, 0x30'u8)
     check(a == [0x01'u8, 0x02'u8, 0x30'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "diff type no offset":
-    write(uint16, a, 0, 0, 0x2010)
+    write(a, 0, 0, 0x2010'u16)
     check(a == [0x10'u8, 0x20'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "diff type base offset":
-    write(uint16, a, 1, 0, 0x3020)
+    write(a, 1, 0, 0x3020'u16)
     check(a == [0x01'u8, 0x20'u8, 0x30'u8, 0x04'u8, 0x05'u8, 0x06'u8])
 
   test "diff type type offset":
-    write(uint16, a, 0, 1, 0x4030)
+    write(a, 0, 1, 0x4030'u16)
     check(a == [0x01'u8, 0x02'u8, 0x30'u8, 0x40'u8, 0x05'u8, 0x06'u8])
 
   test "diff type both offset":
-    write(uint16, a, 1, 1, 0x5040)
+    write(a, 1, 1, 0x5040'u16)
     check(a == [0x01'u8, 0x02'u8, 0x03'u8, 0x40'u8, 0x50'u8, 0x06'u8])
