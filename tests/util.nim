@@ -40,16 +40,16 @@ suite "bit":
 
 suite "signExtend":
   test "positive":
-    check(signExtend(uint8, 0b00000101'u8, 3) == 0b00000101)
+    check(signExtend[uint8](0b00000101'u8, 3) == 0b00000101)
 
   test "negative":
-    check(signExtend(uint8, 0b00000101'u8, 2) == 0b11111101)
+    check(signExtend[uint8](0b00000101'u8, 2) == 0b11111101)
 
   test "positive type up":
-    check(signExtend(uint16, 0x07'u8, 3) == 0x07)
+    check(signExtend[uint16](0x07'u8, 3) == 0x07)
 
   test "negative type up":
-    check(signExtend(uint16, 0x07'u8, 2) == 0xFFFF'u16)
+    check(signExtend[uint16](0x07'u8, 2) == 0xFFFF'u16)
 
 suite "read":
   let a = [0x01'u8, 0x02'u8, 0x03'u8, 0x04'u8, 0x05'u8, 0x06'u8]

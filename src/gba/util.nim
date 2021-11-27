@@ -12,7 +12,7 @@ func `<<`*[T: SomeUnsignedInt](value: T, count: Natural): T =
 
 func bit*(value: SomeUnsignedInt, bit: Natural): bool {.inline.} = bool((value >> bit) and 1)
 
-func signExtend*(T: typedesc, value: SomeUnsignedInt, bit: Natural): T =
+func signExtend*[T: SomeUnsignedInt](value: SomeUnsignedInt, bit: Natural): T =
   result = cast[T](value)
   if value.bit(bit): result = result or (high(T) shl bit)
 

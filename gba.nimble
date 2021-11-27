@@ -9,7 +9,7 @@ bin           = @["gba"]
 
 # Dependencies
 
-requires "nim >= 1.4.0"
+requires "nim >= 1.6.0"
 requires "sdl2 >= 1.0"
 
 task wasm, "wasm":

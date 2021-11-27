@@ -19,11 +19,11 @@ proc longBranchLink[offsetHigh: static bool](gba: GBA, instr: uint32) =
     gba.cpu.setReg(15, gba.cpu.r[14] + (offset shl 1))
     gba.cpu.r[14] = (r15 - 2) or 1
   else:
-    gba.cpu.r[14] = gba.cpu.r[15] + (signExtend(uint32, offset, 10) shl 12)
+    gba.cpu.r[14] = gba.cpu.r[15] + (signExtend[uint32](offset, 10) shl 12)
     gba.cpu.stepThumb()
 
 proc unconditionalBranch(gba: GBA, instr: uint32) =
-  let offset = signExtend(uint32, instr.bitsliced(0..10), 10) shl 1
+  let offset = signExtend[uint32](instr.bitsliced(0..10), 10) shl 1
   gba.cpu.setReg(15, gba.cpu.r[15] + offset)
 
 proc softwareInterrupt(gba: GBA, instr: uint32) =
@@ -36,7 +36,7 @@ proc softwareInterrupt(gba: GBA, instr: uint32) =
 
 proc conditionalBranch[cond: static uint32](gba: GBA, instr: uint32) =
   if gba.cpu.checkCond(cond):
-    let offset = signExtend(uint32, instr.bitsliced(0..7), 7) * 2
+    let offset = signExtend[uint32](instr.bitsliced(0..7), 7) * 2
     gba.cpu.setReg(15, gba.cpu.r[15] + offset)
   else:
     gba.cpu.stepThumb()
