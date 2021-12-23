@@ -1,6 +1,6 @@
 import strutils
 
-import types, interrupts, keypad, ppu, timer, dma, apu, serial, regs
+import types, ppu, apu, dma, timer, serial, keypad, interrupts, regs
 
 var
   waitcnt: WAITCNT
