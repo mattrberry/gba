@@ -18,7 +18,7 @@ proc `[]`*(interrupts: Interrupts, address: SomeInteger): uint8 =
   of 0x202..0x203: read(interrupts.regIf, address and 1)
   of 0x208: uint8(interrupts.ime)
   of 0x209: 0'u8
-  else: quit "Unmapped interrupts read: " & address.toHex(4)
+  else: echo "Unmapped Interrupts read: " & address.toHex(8); 0
 
 proc `[]=`*(interrupts: Interrupts, address: SomeInteger, value: uint8) =
   case address:
@@ -26,5 +26,5 @@ proc `[]=`*(interrupts: Interrupts, address: SomeInteger, value: uint8) =
   of 0x202..0x203: write(interrupts.regIf, (interrupts.regIf.toU16 shr ((address and 1) * 8)).uint8 and not(value), address and 1)
   of 0x208: interrupts.ime = value.bit(0)
   of 0x209: discard
-  else: echo "Unmapped interrupts write: ", address.toHex(4), " -> ", value.toHex(2)
+  else: echo "Unmapped Interrupts write: ", address.toHex(8), " = ", value.toHex(2)
   interrupts.scheduleCheck()

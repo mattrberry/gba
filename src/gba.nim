@@ -1,7 +1,7 @@
 import os
 import sdl2
 
-import gba/[apu, bus, cpu, display, keypad, ppu, interrupts, scheduler, types]
+import gba/[apu, bus, cpu, display, keypad, ppu, interrupts, timer, dma, serial, scheduler, types]
 
 proc newGBA(bios, rom: string): GBA =
   new result
@@ -13,6 +13,9 @@ proc newGBA(bios, rom: string): GBA =
   result.ppu = newPPU(result)
   result.keypad = newKeypad(result)
   result.interrupts = newInterrupts(result)
+  result.timer = newTimer(result)
+  result.dma = newDMA(result)
+  result.serial = newSerial(result)
 
 proc runFrame(gba: GBA) =
   for _ in 0 ..< 280896:

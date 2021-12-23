@@ -11,6 +11,9 @@ type
     ppu*: PPU
     keypad*: Keypad
     interrupts*: Interrupts
+    timer*: Timer
+    dma*: DMA
+    serial*: Serial
     scheduler*: Scheduler
 
   APU* = ref object
@@ -27,8 +30,12 @@ type
     ewram*: array[0x08000, uint8]
     rom*: array[0x02000000, uint8]
     mmio*: MMIO
+    save*: Save
 
   MMIO* = ref object
+    gba*: GBA
+
+  Save* = ref object
     gba*: GBA
 
   CPU* = ref object
@@ -38,7 +45,6 @@ type
     spsr*: PSR
     halted*: bool
     interrupt*: proc(cpu: var CPU)
-
 
   PPU* = ref object
     gba*: GBA
@@ -54,6 +60,15 @@ type
     ime*: bool
     regIe*: INTERRUPT
     regIf*: INTERRUPT
+
+  Timer* = ref object
+    gba*: GBA
+
+  DMA* = ref object
+    gba*: GBA
+
+  Serial* = ref object
+    gba*: GBA
 
   Scheduler* = ref object
     events*: HeapQueue[Event]

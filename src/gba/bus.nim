@@ -1,11 +1,12 @@
 import bitops, strutils
 
-import types, util, mmio
+import types, util, mmio, save
 
 proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   new result
   result.gba = gba
   result.mmio = newMMIO(gba)
+  result.save = newSave(gba)
   for i in 0 ..< result.rom.len:
     var oob = 0xFFFF and (i shr 1)
     result.rom[i] = uint8((oob shr (8 * (i and 1))))
@@ -38,6 +39,7 @@ proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
     of 0x8, 0x9,
        0xA, 0xB,
        0xC, 0xD: cast[ptr T](addr bus.rom[aligned and 0x01FFFFFF])[]
+    of 0xE, 0xF: cast[T](bus.save[aligned])
     else: quit "Unmapped " & $T & " read: " & aligned.toHex(8)
 
 proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
@@ -59,7 +61,8 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
     if address > 0x17FFF: address -= 0x8000
     cast[ptr T](addr bus.gba.ppu.vram[address])[] = value
   of 0x7: cast[ptr T](addr bus.gba.ppu.oam[aligned and 0x3FF])[] = value
-  else: echo "Unmapped " & $T & " write: " & index.toHex(8) & " -> " & value.toHex(sizeof(T) * 2)
+  of 0xE, 0xF: bus.save[aligned] = cast[uint8](value)
+  else: echo "Unmapped " & $T & " write: " & index.toHex(8) & " = " & value.toHex(sizeof(T) * 2)
 
 proc readRotate*[T: uint16 | uint32](bus: Bus, index: uint32): uint32 =
   let

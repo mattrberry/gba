@@ -85,3 +85,10 @@ proc tickFrameSequencer(apu: APU): proc() = (proc() =
     cast[Channel1](apu.channel1).lengthStep()
   else: discard
   frameSequencerStage = (frameSequencerStage + 1) and 7)
+
+proc `[]`*(apu: APU, address: SomeInteger): uint8 =
+  echo "Unmapped APU read: " & address.toHex(8)
+  0
+
+proc `[]=`*(apu: APU, address: SomeInteger, value: uint8) =
+  echo "Unmapped APU write: ", address.toHex(8), " = ", value.toHex(2)

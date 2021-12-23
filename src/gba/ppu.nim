@@ -141,7 +141,7 @@ proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
   of 0x04..0x05: read(dispstat, address and 1)
   of 0x06..0x07: (if address.bit(0): 0'u8 else: vcount)
   of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
-  else: quit "Unmapped PPU read: " & address.toHex(4)
+  else: echo "Unmapped PPU read: " & address.toHex(4); 0
 
 proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   case address:
@@ -153,4 +153,4 @@ proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
     let layer = (address - 0x10) div 4
     if address.bit(1): write(bgvofs[layer], value, address and 1)
     else:              write(bghofs[layer], value, address and 1)
-  else: echo "Unmapped PPU write: ", address.toHex(4), " -> ", value.toHex(2)
+  else: echo "Unmapped PPU write: ", address.toHex(8), " = ", value.toHex(2)

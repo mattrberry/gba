@@ -14,13 +14,13 @@ proc `[]`*(keypad: Keypad, address: SomeInteger): uint8 =
   case address:
   of 0x130..0x131: read(keyinput, address and 1)
   of 0x132..0x133: read(keycnt, address and 1)
-  else: quit "Unmapped Keypad read: " & address.toHex(4)
+  else: echo "Unmapped Keypad read: " & address.toHex(8); 0
 
 proc `[]=`*(keypad: Keypad, address: SomeInteger, value: uint8) =
   case address:
   of 0x130..0x131: discard # read only
   of 0x132..0x133: write(keycnt, value, address and 1)
-  else: echo "Unmapped Keypad write: ", address.toHex(4), " -> ", value.toHex(2)
+  else: echo "Unmapped Keypad write: ", address.toHex(8), " = ", value.toHex(2)
 
 proc keyEvent*(keypad: Keypad, event: KeyboardEventObj) =
   let bit = not(bool(event.state))
