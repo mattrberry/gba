@@ -1,5 +1,5 @@
 type
-  Reg16 = PPURegs | KeypadRegs | MiscRegs
+  Reg16 = PPURegs | DMARegs | KeypadRegs | MiscRegs
 
   PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS
 
@@ -38,6 +38,19 @@ type
   BGOFS* = object
     offset* {.bitsize:9.}: cuint
     notUsed* {.bitsize:7.}: cuint
+
+  DMARegs = DMACNT
+
+  DMACNT* = object
+    notUsed* {.bitsize:5.}: cuint
+    dstCtrl* {.bitsize:2.}: cuint
+    srcCtrl* {.bitsize:2.}: cuint
+    repeat* {.bitsize:1.}: bool
+    word* {.bitsize:1.}: bool
+    gamepak* {.bitsize:1.}: bool
+    timing* {.bitsize:2.}: cuint
+    irq* {.bitsize:1.}: bool
+    enable* {.bitsize:1.}: bool
 
   KeypadRegs = KEYINPUT | KEYCNT
 
