@@ -16,11 +16,24 @@ var
   layerBuffers: array[4, Scanline]
 
   dispcnt: DISPCNT
+  greenSwap: uint16
   dispstat: DISPSTAT
   vcount: uint8
   bgcnts: array[4, BGCNT]
   bghofs: array[4, BGOFS]
   bgvofs: array[4, BGOFS]
+  bgaff: array[2, array[4, uint16]]
+  bgref: array[2, array[2, uint32]]
+  win0h: WINBOUND
+  win1h: WINBOUND
+  win0v: WINBOUND
+  win1v: WINBOUND
+  winin: WININ
+  winout: WINOUT
+  mosaic: MOSAIC
+  bldcnt: BLDCNT
+  bldalpha: BLDALPHA
+  bldy: BLDY
 
 proc startLine(ppu: PPU): proc()
 proc startHblank(ppu: PPU): proc()
@@ -138,14 +151,36 @@ proc endHblank(ppu: PPU): proc() = (proc() =
 proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
   case address:
   of 0x00..0x01: read(dispcnt, address and 1)
+  of 0x02..0x03: read(greenSwap, address and 1)
   of 0x04..0x05: read(dispstat, address and 1)
   of 0x06..0x07: (if address.bit(0): 0'u8 else: vcount)
   of 0x08..0x0F: read(bgcnts[(address - 0x08) div 2], address and 1)
+  of 0x10..0x1F:
+    let layer = (address - 0x10) div 4
+    if address.bit(1): read(bgvofs[layer], address and 1)
+    else:              read(bghofs[layer], address and 1)
+  of 0x20..0x3F:
+    let
+      bgNum = (address - 0x20) div 16
+      offset = address and 0xF
+    if offset < 8: read(bgaff[bgNum][offset div 2], address and 1)
+    else:          read(bgref[bgNum][(offset - 8) div 4], address and 3)
+  of 0x40..0x41: read(win0h, address and 1)
+  of 0x42..0x43: read(win1h, address and 1)
+  of 0x44..0x45: read(win0v, address and 1)
+  of 0x46..0x47: read(win1v, address and 1)
+  of 0x48..0x49: read(winin, address and 1)
+  of 0x4A..0x4B: read(winout, address and 1)
+  of 0x4C..0x4D: read(mosaic, address and 1)
+  of 0x50..0x51: read(bldcnt, address and 1)
+  of 0x52..0x53: read(bldalpha, address and 1)
+  of 0x54..0x55: read(bldy, address and 1)
   else: echo "Unmapped PPU read: " & address.toHex(4); 0
 
 proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   case address:
   of 0x00..0x01: write(dispcnt, value, address and 1)
+  of 0x02..0x03: write(greenSwap, value, address and 1)
   of 0x04..0x05: write(dispstat, value, address and 1)
   of 0x06..0x07: discard # vcount
   of 0x08..0x0F: write(bgcnts[(address - 0x08) div 2], value, address and 1)
@@ -153,4 +188,20 @@ proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
     let layer = (address - 0x10) div 4
     if address.bit(1): write(bgvofs[layer], value, address and 1)
     else:              write(bghofs[layer], value, address and 1)
+  of 0x20..0x3F:
+    let
+      bgNum = (address - 0x20) div 16
+      offset = address and 0xF
+    if offset < 8: write(bgaff[bgNum][offset div 2], value, address and 1)
+    else:          write(bgref[bgNum][(offset - 8) div 4], value, address and 3)
+  of 0x40..0x41: write(win0h, value, address and 1)
+  of 0x42..0x43: write(win1h, value, address and 1)
+  of 0x44..0x45: write(win0v, value, address and 1)
+  of 0x46..0x47: write(win1v, value, address and 1)
+  of 0x48..0x49: write(winin, value, address and 1)
+  of 0x4A..0x4B: write(winout, value, address and 1)
+  of 0x4C..0x4D: write(mosaic, value, address and 1)
+  of 0x50..0x51: write(bldcnt, value, address and 1)
+  of 0x52..0x53: write(bldalpha, value, address and 1)
+  of 0x54..0x55: write(bldy, value, address and 1)
   else: echo "Unmapped PPU write: ", address.toHex(8), " = ", value.toHex(2)

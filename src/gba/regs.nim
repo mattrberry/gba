@@ -1,7 +1,7 @@
 type
   Reg16 = PPURegs | DMARegs | KeypadRegs | MiscRegs
 
-  PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS
+  PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS | WINBOUND | WININ | WINOUT | MOSAIC | BLDCNT | BLDALPHA | BLDY
 
   DISPCNT* = object
     mode* {.bitsize:3.}: cuint
@@ -38,6 +38,58 @@ type
   BGOFS* = object
     offset* {.bitsize:9.}: cuint
     notUsed* {.bitsize:7.}: cuint
+
+  WINBOUND* = object
+    endPos* {.bitsize:8.}: cuint
+    startPos* {.bitsize:8}: cuint
+
+  WININ* = object
+    win0enable* {.bitsize:5.}: cuint
+    win0effects* {.bitsize:1.}: bool
+    notUsed1* {.bitsize:2.}: cuint
+    win1enable* {.bitsize:5.}: cuint
+    win1effects* {.bitsize:1.}: bool
+    notUsed2* {.bitsize:2}: cuint
+
+  WINOUT* = object
+    winOutEnable* {.bitsize:5.}: cuint
+    winOutEffects* {.bitsize:1.}: bool
+    notUsed1* {.bitsize:2.}: cuint
+    winObjEnable* {.bitsize:5.}: cuint
+    winObjEffects* {.bitsize:1.}: bool
+    notUsed2* {.bitsize:2.}: cuint
+
+  MOSAIC* = object
+    bgHSize* {.bitsize:4.}: cuint
+    bgVSize* {.bitsize:4.}: cuint
+    objHSize* {.bitsize:4.}: cuint
+    objVSize* {.bitsize:4.}: cuint
+
+  BLDCNT* = object
+    bg0First* {.bitsize:1.}: bool
+    bg1First* {.bitsize:1.}: bool
+    bg2First* {.bitsize:1.}: bool
+    bg3First* {.bitsize:1.}: bool
+    objFirst* {.bitsize:1.}: bool
+    bdFirst* {.bitsize:1.}: bool
+    effect* {.bitsize:2.}: cuint
+    bg0Second* {.bitsize:1.}: bool
+    bg1Second* {.bitsize:1.}: bool
+    bg2Second* {.bitsize:1.}: bool
+    bg3Second* {.bitsize:1.}: bool
+    objSecond* {.bitsize:1.}: bool
+    bdSecond* {.bitsize:1.}: bool
+    notUsed* {.bitsize:2.}: cuint
+
+  BLDALPHA* = object
+    eva* {.bitsize:5.}: cuint
+    notUsed1* {.bitsize:3.}: cuint
+    evb* {.bitsize:5.}: cuint
+    notUsed2* {.bitsize:3.}: cuint
+
+  BLDY* = object
+    evy* {.bitsize:5.}: cuint
+    notUsed {.bitsize:11.}: cuint
 
   DMARegs = DMACNT
 
@@ -119,10 +171,19 @@ converter toReg16*[T: Reg16](num: uint16): T = cast[T](num)
 proc put(reg: var Reg16, b: uint16) {.inline.} = reg = b.toReg16[: reg.type]
 
 proc read*(reg: Reg16, byteNum: SomeInteger): uint8 =
-  uint8((toU16(reg) shr (8 * byteNum)) and 0xFF)
+  cast[uint8]((toU16(reg) shr (8 * byteNum)))
 
 proc write*(reg: var Reg16, value: uint8, byteNum: SomeInteger) =
   let
     shift = 8 * byteNum
     mask = not(0xFF'u16 shl shift)
   reg.put ((mask and toU16(reg)) or (value.uint16 shl shift))
+
+proc read*[T: uint16 | uint32](reg: var T, byteNum: SomeInteger): uint8 =
+  cast[uint8](reg shr (8 * byteNum))
+
+proc write*[T: uint16 | uint32](reg: var T, value: uint8, byteNum: SomeInteger) =
+  let
+    shift = 8 * byteNum
+    mask = not(0xFF.T shl shift)
+  reg = (mask and reg) or (value.T shl shift)
