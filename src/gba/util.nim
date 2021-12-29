@@ -1,3 +1,6 @@
+import posix
+import times
+
 func `<<`*[T: SomeUnsignedInt](value: T, count: Natural): T
 
 # Right shift operator supporting negative and large shift amounts
@@ -26,3 +29,20 @@ func read*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger): T {.inl
 
 func write*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger, value: T) {.inline.} =
   cast[ptr T](unsafeAddr(val[a.int]))[b.int] = value
+
+proc nanosleep(nanoseconds: SomeInteger) =
+  var a, b: Timespec
+  a.tv_nsec = int(nanoseconds)
+  discard posix.nanosleep(a, b)
+
+const nanosPerFrame = 1_000_000_000 div 60
+var lastTime = times.getTime()
+proc sleepUntilEndOfFrame*() =
+  let
+    currentTime = times.getTime()
+    duration = nanosPerFrame - (currentTime - lastTime).inNanoseconds()
+  if duration > 0:
+    var a, b: Timespec
+    a.tv_nsec = int(duration)
+    discard posix.nanosleep(a, b)
+  lastTime = times.getTime()

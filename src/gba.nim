@@ -1,7 +1,7 @@
 import os
 import sdl2
 
-import gba/[types, display, scheduler, bus, cpu, ppu, apu, dma, timer, serial, keypad, interrupts]
+import gba/[types, display, scheduler, bus, cpu, ppu, apu, dma, timer, serial, keypad, interrupts, util]
 
 proc newGBA(bios, rom: string): GBA =
   new result
@@ -47,4 +47,6 @@ when defined(emscripten):
 else:
   if paramCount() != 2: quit "Run with ./gba /path/to/bios /path/to/rom"
   var gba = newGBA(paramStr(1), paramStr(2))
-  while true: loop(gba)
+  while true:
+    loop(gba)
+    sleepUntilEndOfFrame()
