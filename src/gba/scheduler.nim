@@ -16,6 +16,14 @@ proc schedule*(scheduler: var Scheduler, cycles: uint64, callback: proc(), event
   scheduler.events.push(event)
   scheduler.nextEvent = scheduler.events[0].cycles
 
+proc clear*(scheduler: var Scheduler, eventType : EventType) =
+  var i = 0
+  while i < len(scheduler.events):
+    if scheduler.events[i].eventType == eventType:
+      scheduler.events.del(i)
+    else:
+      i += 1
+
 proc tick*(scheduler: var Scheduler, cycles: int) =
   for _ in 0 ..< cycles:
     scheduler.cycles += 1

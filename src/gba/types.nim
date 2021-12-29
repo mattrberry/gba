@@ -63,6 +63,7 @@ type
 
   Timer* = ref object
     gba*: GBA
+    overflowProcs*: array[4, proc()]
 
   DMA* = ref object
     gba*: GBA

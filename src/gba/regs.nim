@@ -1,5 +1,5 @@
 type
-  Reg16 = PPURegs | DMARegs | KeypadRegs | MiscRegs
+  Reg16 = PPURegs | DMARegs | TimerRegs | KeypadRegs | MiscRegs
 
   PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS | WINBOUND | WININ | WINOUT | MOSAIC | BLDCNT | BLDALPHA | BLDY
 
@@ -104,6 +104,16 @@ type
     irq* {.bitsize:1.}: bool
     enable* {.bitsize:1.}: bool
 
+  TimerRegs = TMCNT
+
+  TMCNT* = object
+    freq* {.bitsize:2}: cuint
+    cascade* {.bitsize:1.}: bool
+    notUsed1* {.bitsize:3.}: cuint
+    irq* {.bitsize:1.}: bool
+    enable* {.bitsize:1.}: bool
+    notUsed2* {.bitsize:8.}: cuint
+
   KeypadRegs = KEYINPUT | KEYCNT
 
   KEYINPUT* = object
@@ -179,7 +189,7 @@ proc write*(reg: var Reg16, value: uint8, byteNum: SomeInteger) =
     mask = not(0xFF'u16 shl shift)
   reg.put ((mask and toU16(reg)) or (value.uint16 shl shift))
 
-proc read*[T: uint16 | uint32](reg: var T, byteNum: SomeInteger): uint8 =
+proc read*[T: uint16 | uint32](reg: T, byteNum: SomeInteger): uint8 =
   cast[uint8](reg shr (8 * byteNum))
 
 proc write*[T: uint16 | uint32](reg: var T, value: uint8, byteNum: SomeInteger) =
