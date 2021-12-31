@@ -1,9 +1,22 @@
 type
+  ColorEffect* = enum
+    none, blend, bright, dark
+
+  DmaAddressControl* = enum
+    increment, decrement, fixed, reload
+
+  DmaChunkSize* = enum
+    halfword, word
+
+  DmaStartTiming* = enum
+    immediate, vblank, hblank, special
+
+type
   Reg16 = PPURegs | DMARegs | TimerRegs | KeypadRegs | MiscRegs
 
   PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS | WINBOUND | WININ | WINOUT | MOSAIC | BLDCNT | BLDALPHA | BLDY
 
-  DISPCNT* = object
+  DISPCNT* {.packed.} = object
     mode* {.bitsize:3.}: cuint
     cgbMode* {.bitsize:1.}: bool
     page* {.bitsize:1.}: bool
@@ -15,7 +28,7 @@ type
     window1* {.bitsize:1.}: bool
     windowObj* {.bitsize:1.}: bool
 
-  DISPSTAT* = object
+  DISPSTAT* {.packed.} = object
     vblank* {.bitsize:1.}: bool
     hblank* {.bitsize:1.}: bool
     vcount* {.bitsize:1.}: bool
@@ -25,7 +38,7 @@ type
     notUsed* {.bitsize:2.}: cuint
     vcountTarget* {.bitsize:8.}: cuint
 
-  BGCNT* = object
+  BGCNT* {.packed.} = object
     priority* {.bitsize:2.}: cuint
     charBase* {.bitsize:2.}: cuint
     notUsed* {.bitsize:2.}: cuint
@@ -35,15 +48,15 @@ type
     affineWrap* {.bitsize:1.}: bool
     screenSize* {.bitsize:2.}: cuint
 
-  BGOFS* = object
+  BGOFS* {.packed.} = object
     offset* {.bitsize:9.}: cuint
     notUsed* {.bitsize:7.}: cuint
 
-  WINBOUND* = object
+  WINBOUND* {.packed.} = object
     endPos* {.bitsize:8.}: cuint
     startPos* {.bitsize:8}: cuint
 
-  WININ* = object
+  WININ* {.packed.} = object
     win0enable* {.bitsize:5.}: cuint
     win0effects* {.bitsize:1.}: bool
     notUsed1* {.bitsize:2.}: cuint
@@ -51,7 +64,7 @@ type
     win1effects* {.bitsize:1.}: bool
     notUsed2* {.bitsize:2}: cuint
 
-  WINOUT* = object
+  WINOUT* {.packed.} = object
     winOutEnable* {.bitsize:5.}: cuint
     winOutEffects* {.bitsize:1.}: bool
     notUsed1* {.bitsize:2.}: cuint
@@ -59,20 +72,20 @@ type
     winObjEffects* {.bitsize:1.}: bool
     notUsed2* {.bitsize:2.}: cuint
 
-  MOSAIC* = object
+  MOSAIC* {.packed.} = object
     bgHSize* {.bitsize:4.}: cuint
     bgVSize* {.bitsize:4.}: cuint
     objHSize* {.bitsize:4.}: cuint
     objVSize* {.bitsize:4.}: cuint
 
-  BLDCNT* = object
+  BLDCNT* {.packed.} = object
     bg0First* {.bitsize:1.}: bool
     bg1First* {.bitsize:1.}: bool
     bg2First* {.bitsize:1.}: bool
     bg3First* {.bitsize:1.}: bool
     objFirst* {.bitsize:1.}: bool
     bdFirst* {.bitsize:1.}: bool
-    effect* {.bitsize:2.}: cuint
+    effect* {.bitsize:2.}: ColorEffect
     bg0Second* {.bitsize:1.}: bool
     bg1Second* {.bitsize:1.}: bool
     bg2Second* {.bitsize:1.}: bool
@@ -81,32 +94,32 @@ type
     bdSecond* {.bitsize:1.}: bool
     notUsed* {.bitsize:2.}: cuint
 
-  BLDALPHA* = object
+  BLDALPHA* {.packed.} = object
     eva* {.bitsize:5.}: cuint
     notUsed1* {.bitsize:3.}: cuint
     evb* {.bitsize:5.}: cuint
     notUsed2* {.bitsize:3.}: cuint
 
-  BLDY* = object
+  BLDY* {.packed.} = object
     evy* {.bitsize:5.}: cuint
     notUsed {.bitsize:11.}: cuint
 
   DMARegs = DMACNT
 
-  DMACNT* = object
+  DMACNT* {.packed.} = object
     notUsed* {.bitsize:5.}: cuint
-    dstCtrl* {.bitsize:2.}: cuint
-    srcCtrl* {.bitsize:2.}: cuint
+    dstCtrl* {.bitsize:2.}: DmaAddressControl
+    srcCtrl* {.bitsize:2.}: DmaAddressControl
     repeat* {.bitsize:1.}: bool
-    word* {.bitsize:1.}: bool
+    transfer* {.bitsize:1.}: DmaChunkSize
     gamepak* {.bitsize:1.}: bool
-    timing* {.bitsize:2.}: cuint
+    timing* {.bitsize:2.}: DmaStartTiming
     irq* {.bitsize:1.}: bool
     enable* {.bitsize:1.}: bool
 
   TimerRegs = TMCNT
 
-  TMCNT* = object
+  TMCNT* {.packed.} = object
     freq* {.bitsize:2}: cuint
     cascade* {.bitsize:1.}: bool
     notUsed1* {.bitsize:3.}: cuint
@@ -116,7 +129,7 @@ type
 
   KeypadRegs = KEYINPUT | KEYCNT
 
-  KEYINPUT* = object
+  KEYINPUT* {.packed.} = object
     a* {.bitsize:1.}: bool
     b* {.bitsize:1.}: bool
     select* {.bitsize:1.}: bool
@@ -129,7 +142,7 @@ type
     l* {.bitsize:1.}: bool
     notUsed* {.bitsize:6.}: cuint
 
-  KEYCNT* = object
+  KEYCNT* {.packed.} = object
     a* {.bitsize:1.}: bool
     b* {.bitsize:1.}: bool
     select* {.bitsize:1.}: bool
@@ -146,7 +159,7 @@ type
 
   MiscRegs = INTERRUPT | WAITCNT
 
-  INTERRUPT* = object
+  INTERRUPT* {.packed.} = object
     vblank* {.bitsize:1.}: bool
     hblank* {.bitsize:1.}: bool
     vcount* {.bitsize:1.}: bool
@@ -163,7 +176,7 @@ type
     gamepak* {.bitsize:1.}: bool
     notUsed* {.bitsize:2.}: cuint
 
-  WAITCNT* = object
+  WAITCNT* {.packed.} = object
     sramWaitControl* {.bitsize:2.}: cuint
     waitState0FirstAccess* {.bitsize:2.}: cuint
     waitState0SecondAccess* {.bitsize:1.}: cuint
