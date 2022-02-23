@@ -182,10 +182,12 @@ proc printState(cpu: CPU, instr: uint32) =
   else:
     echo instr.toHex(8)
 
-proc tick*(cpu: var CPU) =
+# Run one instruction and return the number of cycles taken
+proc tick*(cpu: var CPU): int =
   let instr = cpu.readInstr()
   when defined(trace): printState(cpu, instr)
   if cpu.cpsr.thumb:
     execThumb(cpu.gba, instr)
   else:
     execArm(cpu.gba, instr)
+  result = accessCycles()

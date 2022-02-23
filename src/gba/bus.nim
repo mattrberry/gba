@@ -2,6 +2,14 @@ import bitops, strutils
 
 import types, util, mmio, save
 
+# Timings for rom are estimated for game compatibility.
+const accessTimingTable = [
+  [1, 1, 3, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2], # 8-bit and 16-bit accesses
+  [1, 1, 6, 1, 1, 2, 2, 1, 4, 4, 4, 4, 4, 4, 4, 4], # 32-bit accesses
+]
+
+var accessCycleCount = 0
+
 proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   new result
   result.gba = gba
@@ -18,9 +26,22 @@ proc newBus*(gba: GBA, biosPath, romPath: string): Bus =
   close(biosFile)
   close(romFile)
 
+# Increment the access cycle count for the cycles needed by this memory region.
+proc countCycles[T: uint8 | uint16 | uint32](page: SomeInteger) {.inline.} =
+  when T is uint32: accessCycleCount += accessTimingTable[1][page]
+  else:             accessCycleCount += accessTimingTable[0][page]
+
+# Get and reset the access cycle count.
+proc accessCycles*(): int {.inline.} =
+  result = accessCycleCount
+  accessCycleCount = 0
+
 proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
-  let aligned = index.clearMasked(sizeof(T) - 1) # uint32:3, uint16:1
-  result = case index.bitsliced(24..27)
+  let
+    aligned = index.clearMasked(sizeof(T) - 1) # uint32:3, uint16:1
+    page = index.bitsliced(24..27)
+  countCycles[T](page)
+  result = case page
     of 0x0: cast[ptr T](addr bus.bios[aligned and 0x3FFF])[]
     of 0x2: cast[ptr T](addr bus.iwram[aligned and 0x3FFFF])[]
     of 0x3: cast[ptr T](addr bus.ewram[aligned and 0x7FFF])[]
@@ -43,8 +64,11 @@ proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
     else: quit "Unmapped " & $T & " read: " & aligned.toHex(8)
 
 proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
-  let aligned = index.clearMasked(sizeof(T) - 1) # uint32:3, uint16:1
-  case bitsliced(index, 24..27)
+  let
+    aligned = index.clearMasked(sizeof(T) - 1) # uint32:3, uint16:1
+    page = index.bitsliced(24..27)
+  countCycles[T](page)
+  case page
   of 0x2: cast[ptr T](addr bus.iwram[aligned and 0x3FFFF])[] = value
   of 0x3: cast[ptr T](addr bus.ewram[aligned and 0x7FFF])[] = value
   of 0x4:

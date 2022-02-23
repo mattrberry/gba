@@ -17,10 +17,16 @@ proc newGBA(bios, rom: string): GBA =
   result.keypad = newKeypad(result)
   result.interrupts = newInterrupts(result)
 
+var cycleCount = 0
+const cyclesPerFrame = 280896
+
+# Run long enough to produce the next frame, then return.
 proc runFrame(gba: GBA) =
-  for _ in 0 ..< 280896:
-    gba.cpu.tick()
-    gba.scheduler.tick(1)
+  while likely(cycleCount < cyclesPerFrame):
+    let accessCycles = gba.cpu.tick()
+    gba.scheduler.tick(accessCycles)
+    cycleCount += accessCycles
+  cycleCount -= cyclesPerFrame
 
 proc checkKeyInput(gba: GBA) =
   var event = sdl2.defaultEvent
