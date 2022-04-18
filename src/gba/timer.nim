@@ -2,7 +2,7 @@ import types, interrupts, regs, scheduler
 
 const
   periods = [1'u16, 64, 256, 1024]
-  events = [EventType.timer0, EventType.timer1, EventType.timer2, EventType.timer3]
+  events = [timer0, timer1, timer2, timer3]
 
 var
   reload: array[4, uint16]
@@ -18,7 +18,7 @@ proc newTimer*(gba: GBA): Timer =
   result.overflowProcs = [overflow(result, 0), overflow(result, 1), overflow(result, 2), overflow(result, 3)]
 
 proc cyclesUntilOverflow(num: SomeInteger): uint64 =
-  periods[tmcnt[num].freq].uint64 * (0x10000'u64 - reload[num])
+  periods[tmcnt[num].freq].uint64 * (0x10000'u64 - counter[num])
 
 proc scheduleTimer(timer: Timer, num: SomeInteger) =
   cycleEnabled[num] = timer.gba.scheduler.cycles
@@ -44,12 +44,12 @@ proc overflow(timer: Timer, num: SomeInteger): proc() = (proc() =
 proc getCurrentCounter(timer: Timer, num: SomeInteger): uint16 =
   result = counter[num]
   if tmcnt[num].enable and not tmcnt[num].cascade:
-    let cycles = uint16(timer.gba.scheduler.cycles - cycleEnabled[num])
-    result += cycles div periods[tmcnt[num].freq]
+    let cycles = timer.gba.scheduler.cycles - cycleEnabled[num]
+    result += uint16(cycles div periods[tmcnt[num].freq])
 
 proc updateCounter(timer: Timer, num: SomeInteger) =
   counter[num] = getCurrentCounter(timer, num)
-  cycleEnabled[num] = timer.gba.scheduler.cycles
+  cycleEnabled[num] = timer.gba.scheduler.cycles # todo: some precision is lost
 
 proc `[]`*(timer: Timer, address: SomeInteger): uint8 =
   let
@@ -60,20 +60,19 @@ proc `[]`*(timer: Timer, address: SomeInteger): uint8 =
 
 proc `[]=`*(timer: Timer, address: SomeInteger, value: uint8) =
   let num = (address - 0x100) div 4
-  if not address.bit(1):
+  if not address.bit(1): # reload
     write(reload[num], value, address and 1)
-  elif not address.bit(0): # top 8 bits aren't used
-    # todo: this doesn't behave as expected. see cascade in tonc tmr_demo
+  elif not address.bit(0): # control (top 8 bits aren't used)
     updateCounter(timer, num)
     let
       wasEnabled = tmcnt[num].enable
       wasCascade = tmcnt[num].cascade
-    write(tmcnt[num], value, address and 1)
+    write(tmcnt[num], value, 0) # all writes are to byte 0
     if tmcnt[num].enable:
-      if tmcnt[num].cascade:
+      if tmcnt[num].cascade: # timer is a cascade, stop counting
         timer.gba.scheduler.clear(events[num])
-      elif not wasEnabled or wasCascade:
+      elif not wasEnabled or wasCascade: # timer enabled or cascade disabled
         if not wasEnabled: counter[num] = reload[num]
         scheduleTimer(timer, num)
-    elif wasEnabled:
+    elif wasEnabled: # disabled, clear scheduler
       timer.gba.scheduler.clear(events[num])
