@@ -79,7 +79,11 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
       when T is uint32:
         bus.mmio[mmioAddr + 2] = cast[uint8](value shr 16)
         bus.mmio[mmioAddr + 3] = cast[uint8](value shr 24)
-  of 0x5: cast[ptr T](addr bus.gba.ppu.pram[aligned and 0x3FF])[] = value
+  of 0x5:
+    when T is uint8: # byte writes are duplicated into both sides of a halfword
+      cast[ptr uint16](addr bus.gba.ppu.pram[aligned and 0x3FE])[] = value.uint16 * 0x0101'u16
+    else:
+      cast[ptr T](addr bus.gba.ppu.pram[aligned and 0x3FF])[] = value
   of 0x6:
     var address = aligned and 0x1FFFF
     if address >= 0x18000: address = address and 0x8000
