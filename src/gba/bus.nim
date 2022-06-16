@@ -1,6 +1,6 @@
 import bitops, strutils
 
-import types, util, mmio, save
+import types, util, mmio, save, ppu
 
 # Timings for rom are estimated for game compatibility.
 const accessTimingTable = [
@@ -82,8 +82,15 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
   of 0x5: cast[ptr T](addr bus.gba.ppu.pram[aligned and 0x3FF])[] = value
   of 0x6:
     var address = aligned and 0x1FFFF
-    if address > 0x17FFF: address -= 0x8000
-    cast[ptr T](addr bus.gba.ppu.vram[address])[] = value
+    if address >= 0x18000: address = address and 0x8000
+    when T is uint8:
+      let limit = if isBitmap(): 0x14000'u32 else: 0x10000'u32
+      if address >= limit: return # byte writes have limited range
+      let value = value.uint16 * 0x0101'u16 # byte writes are duplicated across halfwords
+      address = address and not 1'u32 # byte writes are aligned as halfwords
+      cast[ptr uint16](addr bus.gba.ppu.vram[address])[] = value
+    else:
+      cast[ptr T](addr bus.gba.ppu.vram[address])[] = value
   of 0x7:
     when T is not uint8: # byte writes are not permitted
       cast[ptr T](addr bus.gba.ppu.oam[aligned and 0x3FF])[] = value

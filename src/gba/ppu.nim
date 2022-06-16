@@ -44,6 +44,8 @@ proc newPPU*(gba: GBA): PPU =
   result.gba = gba
   result.startLine()()
 
+proc isBitmap*(): bool = dispcnt.mode >= 3
+
 # from tonc https://www.coranac.com/tonc/text/regbg.htm
 proc seIndex(tileX, tileY, screenSize: SomeInteger): SomeInteger =
   result = tileX + tileY * 32
