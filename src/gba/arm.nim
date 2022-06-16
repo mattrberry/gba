@@ -128,7 +128,7 @@ proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static
     if add: address += offset
     else: address -= offset
   if load:
-    let value = if byte: gba.bus.read[:uint8](address).uint32
+    let value = when byte: gba.bus.read[:uint8](address).uint32
                 else: gba.bus.readRotate[:uint32](address)
     gba.cpu.setReg(rd, value)
   else:
@@ -136,8 +136,8 @@ proc singleDataTransfer[immediate, pre, add, byte, writeback, load, bit4: static
     # When R15 is the source register (Rd) of a register store (STR) instruction, the stored
     # value will be address of the instruction plus 12.
     if rd == 15: value += 4
-    if byte: value = uint8(value and 0xFF)
-    gba.bus[address] = value
+    when byte: gba.bus[address] = cast[uint8](value)
+    else: gba.bus[address] = value
   if not pre:
     if add: address += offset
     else: address -= offset
@@ -269,8 +269,9 @@ proc dataProcessing[immediate: static bool, op: static AluOp, setCond, bit4: sta
     when op notin {TST, TEQ, CMP, CMN}: gba.cpu.r[rd] = value
     gba.cpu.stepArm()
 
-
-# todo: move this back to nice block creation if the compile time is ever reduced...
+# Builds a lookup table of instruction handlers, indexed by bits that must be set in the instruction.
+# These bits include bits 27..20 and 7..4, represented in that order below.
+#   todo: move this back to nice block creation if the compile time is ever reduced...
 macro lutBuilder(): untyped =
   result = newTree(nnkBracket)
   for i in 0'u32 ..< 4096'u32:
