@@ -1,3 +1,17 @@
+const showLogButton = document.getElementById("show-log");
+const logDiv = document.getElementById("log");
+logDiv.hidden = true;
+showLogButton.addEventListener("click", () => {
+  logDiv.hidden = !logDiv.hidden;
+  logDiv.scroll({ top: logDiv.scrollHeight });
+});
+const log = (message) => {
+  let shouldScroll =
+    logDiv.scrollTop === logDiv.scrollHeight - logDiv.offsetHeight;
+  logDiv.innerHTML += `<p>${message}</p>`;
+  if (shouldScroll) logDiv.scroll({ top: logDiv.scrollHeight });
+};
+
 const readToEmscriptenFileSystem = (filename, filter = "") => {
   return new Promise((resolve, reject) => {
     let input = document.createElement("input");
@@ -20,16 +34,6 @@ const readToEmscriptenFileSystem = (filename, filter = "") => {
   });
 };
 
-const pressButton = (keyCode, down = true) => {
-  let event = new Event(down ? "keydown" : "keyup", {
-    bubbles: true,
-    cancelable: "true",
-  });
-  event.keyCode = keyCode;
-  event.which = keyCode;
-  document.dispatchEvent(event);
-};
-
 const reportFps = (fps) => {
   let element = document.getElementById("fps");
   element.innerHTML = `FPS: ${fps}`;
@@ -47,58 +51,99 @@ document
     )
   );
 
-var currentDpad = null;
-
-document.getElementById("dpad").addEventListener("touchstart", (event) => {
-  let element = event.target;
-  if (currentDpad == null && element.hasAttribute("button")) {
-    let keyCode = element.getAttribute("button");
-    pressButton(keyCode, true);
-    currentDpad = keyCode;
-  }
-});
-
-document.getElementById("dpad").addEventListener("touchend", (event) => {
-  let touch = event.changedTouches[0];
-  let element = document.elementFromPoint(touch.clientX, touch.clientY);
-  if (element.hasAttribute("button")) {
-    pressButton(element.getAttribute("button"), false);
-    currentDpad = null;
-  }
-});
-
-document.getElementById("dpad").addEventListener("touchmove", (event) => {
-  event.preventDefault();
-  let touch = event.touches[0];
-  let element = document.elementFromPoint(touch.clientX, touch.clientY);
-  if (element.hasAttribute("button")) {
-    let keyCode = element.getAttribute("button");
-    if (keyCode != currentDpad) {
-      pressButton(currentDpad, false);
-      pressButton(keyCode, true);
-      currentDpad = keyCode;
-    }
-  } else if (currentDpad != null) {
-    pressButton(currentDpad, false);
-    currentDpad = null;
-  }
-});
-
-document.querySelectorAll("[button]").forEach((element) =>
-  element.addEventListener("touchstart", (event) => {
-    pressButton(element.getAttribute("button"), true);
-  })
-);
-
-document.querySelectorAll("[button]").forEach((element) =>
-  element.addEventListener("touchend", (event) => {
-    pressButton(element.getAttribute("button"), false);
-  })
-);
-
 var Module = {
   canvas: (() => document.getElementById("canvas"))(),
 };
 
-// Make mobile Safari respond to button :active
-document.addEventListener("touchstart", function () {}, false);
+const pressKey = (keycode, down = true) => {
+  let event = new Event(down ? "keydown" : "keyup", {
+    bubbles: true,
+    cancelable: "true",
+  });
+  event.keyCode = keycode;
+  event.which = keycode;
+  document.dispatchEvent(event);
+};
+
+const pressAllKeys = (keycodes, down) => {
+  for (let keycode of keycodes) {
+    pressKey(keycode, down);
+  }
+};
+
+var currentDpadTouchId = null; // identifier of current Touch
+var currentDpadElement = null; // element that is being touched
+
+const getTouch = (touchList, touchId) => {
+  for (let touch of touchList) {
+    if (touch.identifier == touchId) {
+      return touch;
+    }
+  }
+};
+
+const getKeycodes = (element) =>
+  element?.getAttribute("keycodes")?.split(" ") ?? [];
+
+const dpadTouchStart = (event) => {
+  let element = event.target;
+  if (currentDpadTouchId == null) {
+    currentDpadTouchId = event.targetTouches[0].identifier; // start tracking first touch on dpad
+    if (element.hasAttribute("keycodes")) {
+      currentDpadElement = element;
+      pressAllKeys(getKeycodes(element), true);
+    }
+  }
+};
+
+const dpadTouchMove = (event) => {
+  if (currentDpadTouchId == null) return; // no idea what this event is
+  let touch = getTouch(event.targetTouches, currentDpadTouchId);
+  if (touch != null) {
+    let element = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (element == currentDpadElement) return; // no need to process if element didn't change
+    if (element == null) return; // somehow outside of screen
+    let oldKeycodes = getKeycodes(currentDpadElement);
+    if (element.hasAttribute("keycodes")) {
+      let newKeycodes = getKeycodes(element);
+      for (let oldKeycode of oldKeycodes) {
+        if (newKeycodes.includes(oldKeycode)) continue; // no change necessary
+        pressKey(oldKeycode, false);
+      }
+      for (let newKeycode of newKeycodes) {
+        if (oldKeycodes.includes(newKeycode)) continue; // no change necessary
+        pressKey(newKeycode, true);
+      }
+      currentDpadElement = element;
+    } else {
+      pressAllKeys(oldKeycodes, false);
+      currentDpadElement = null;
+    }
+  }
+};
+
+const dpadTouchEnd = (event) => {
+  let touch = getTouch(event.changedTouches, currentDpadTouchId);
+  if (touch != null) {
+    pressAllKeys(getKeycodes(currentDpadElement), false);
+    currentDpadTouchId = null;
+    currentDpadElement = null;
+  }
+};
+
+document.getElementById("dpad").addEventListener("touchstart", dpadTouchStart);
+document.getElementById("dpad").addEventListener("touchmove", dpadTouchMove);
+document.getElementById("dpad").addEventListener("touchend", dpadTouchEnd);
+document.getElementById("dpad").addEventListener("touchcancel", dpadTouchEnd);
+
+document.querySelectorAll("[keycode]").forEach((element) =>
+  element.addEventListener("touchstart", (event) => {
+    pressKey(element.getAttribute("keycode"), true);
+  })
+);
+
+document.querySelectorAll("[keycode]").forEach((element) =>
+  element.addEventListener("touchend", (event) => {
+    pressKey(element.getAttribute("keycode"), false);
+  })
+);

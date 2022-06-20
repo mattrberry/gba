@@ -5,31 +5,26 @@
  */
 
 :root {
-  --bg-color: #ffffff;
-  --alt-color: #eeeeee;
-  --fore-color: #dddddd;
-  --accent-color: #777777;
-  --text-color: #666666;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-color: #0e1621;
-    --alt-color: #17212b;
-    --fore-color: #182533;
-    --accent-color: #2b5278;
-    --text-color: #ffffff;
-  }
+  --bg-color: #0e1621;
+  --alt-color: #17212b;
+  --fore-color: #182533;
+  --accent-color: #2b5278;
+  --text-color: #ffffff;
 }
 
 .no-select {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Old versions of Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome, Edge, Opera and Firefox */
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  -khtml-user-select: none;
+  /* Konqueror HTML */
+  -moz-user-select: none;
+  /* Old versions of Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+  user-select: none;
+  /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
 /*
@@ -41,268 +36,136 @@
 body {
   margin: 0;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   position: fixed;
-  touch-action: manipulation;
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 700;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-color);
   color: var(--text-color);
-}
-
-#canvas {
-  width: 960px;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 #fps {
   display: inline;
 }
 
+#canvas {
+  width: 960px;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 3 / 2;
+}
+
 #controls {
-  max-width: 640px;
+  height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2em;
-  margin: 0 auto;
   flex-wrap: wrap;
+  align-content: space-between;
 }
 
-@media screen and (max-width: 600px) {
-  #controls {
-    padding: 0.5em;
-  }
-
-  #controls > div {
-    margin: 0.5em;
-  }
-
-  #dpad {
-    order: 1;
-  }
-
-  #pills {
-    order: 3;
-  }
-
-  #ab {
-    order: 2;
-  }
-}
-
-#controls > div {
-  margin: 1em;
+#lr,
+#select-start {
+  width: 100%;
   display: flex;
+  justify-content: space-evenly;
+  gap: 9px;
+  margin: 9px;
 }
 
-/* 
- * ==========================================================
- * DPAD
- * ==========================================================
- */
+#lr > div,
+#select-start > div {
+  width: 100%;
+  height: 50px;
+  border: 1px solid var(--accent-color);
+}
+
+#lr,
+#select-start,
+#ab {
+  text-align: center;
+  text-transform: uppercase;
+  line-height: 50px;
+  color: var(--accent-color);
+}
+
+#main-controls {
+  margin: 9px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+#main-controls > div {
+  margin: 1em;
+}
 
 #dpad {
-  width: 200px;
-  height: 200px;
-  overflow: hidden;
-  position: relative;
-  background: var(--bg-color);
-  flex-shrink: 0;
-  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  display: grid;
+  grid-template-columns: 50px 50px 50px;
+  grid-template-rows: 50px 50px 50px;
 }
 
-@media screen and (max-width: 600px) {
-  #dpad {
-    width: 150px;
-    height: 150px;
-  }
+#dpad > #up,
+#dpad > #left,
+#dpad > #right,
+#dpad > #down {
+  border: 1px solid var(--accent-color);
 }
 
-#dpad::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border-radius: 5%;
-  transform: translate(-50%, -50%);
-  width: 66.6%;
-  height: 66.6%;
-  background: var(--fore-color);
+#dpad > #upleft {
+  grid-area: 1 / 1;
 }
 
-.dpad-arrow {
-  border-radius: 17% 17% 50% 50%;
-  width: 30%;
-  height: 44%;
-  background: var(--fore-color);
-  position: absolute;
-  cursor: pointer;
+#dpad > #up {
+  grid-area: 1 / 2;
+  border-bottom: none;
 }
 
-.dpad-arrow::before {
-  content: "";
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-width: 10px;
-  border-style: solid;
-  border-color: transparent;
-  border-bottom-color: var(--accent-color);
-  border-bottom-width: 12px;
-  border-radius: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 10px;
-  transition: all 0.25s;
+#dpad > #upright {
+  grid-area: 1 / 3;
 }
 
-.dpad-arrow::after {
-  content: "";
-  position: absolute;
-  width: 100%;
-  height: 80%;
-  background: var(--bg-color);
-  left: 0;
-  top: 0;
-  border-radius: 30%;
-  transform: translate(-100%, 0);
-  pointer-events: none;
+#dpad > #left {
+  grid-area: 2 / 1;
+  border-right: none;
 }
 
-.dpad-arrow:hover::before {
-  top: 4px;
+#dpad > #right {
+  grid-area: 2 / 3;
+  border-left: none;
 }
 
-.dpad-arrow:hover {
-  background: linear-gradient(0deg, var(--fore-color) 0%, var(--alt-color) 50%);
+#dpad > #downleft {
+  grid-area: 3 / 1;
 }
 
-.dpad-arrow:active {
-  background: linear-gradient(
-    0deg,
-    var(--fore-color) 0%,
-    var(--alt-color) 100%
-  );
+#dpad > #down {
+  grid-area: 3 / 2;
+  border-top: none;
 }
 
-.dpad-arrow#up {
-  left: 50%;
-  transform: translateX(-50%);
-  top: 0;
+#dpad > #downright {
+  grid-area: 3 / 3;
 }
-
-.dpad-arrow#down {
-  left: 50%;
-  transform: translateX(-50%) rotate(180deg);
-  bottom: 0;
-}
-
-.dpad-arrow#left {
-  top: 50%;
-  transform: translateY(-50%) rotate(270deg);
-  left: 7%;
-}
-
-.dpad-arrow#right {
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  right: 7%;
-}
-
-/* 
- * ==========================================================
- * Button Core
- * ==========================================================
- */
-
-.button {
-  background-color: var(--fore-color);
-  background: linear-gradient(
-    to top,
-    var(--accent-color) 0%,
-    var(--fore-color) 10%,
-    var(--alt-color) 100%
-  );
-  cursor: pointer;
-  margin-top: 0;
-  margin-bottom: 6px;
-  position: relative;
-  transition: all 0.05s ease-out;
-}
-
-.button:active {
-  box-shadow: 0px 4px 30px var(--accent-color);
-  margin-top: 4px;
-  margin-bottom: 2px;
-}
-
-button {
-  border: 0;
-  color: var(--text-color);
-}
-
-/* 
- * ==========================================================
- * Pill Buttons
- * ==========================================================
- */
-
-#pills {
-  display: flex;
-  text-align: center;
-  justify-content: center;
-  flex-direction: column;
-  text-transform: uppercase;
-  color: var(--text-color);
-}
-
-@media screen and (max-width: 600px) {
-  #pills {
-    flex-direction: row;
-  }
-}
-
-#pills > div {
-  margin: 0.5em;
-}
-
-.pill {
-  width: 80px;
-  height: 20px;
-  border-radius: 20px;
-  cursor: pointer;
-  background: linear-gradient(
-    to top,
-    var(--accent-color) 0%,
-    var(--fore-color) 26%,
-    var(--alt-color) 100%
-  );
-}
-
-/* 
- * ==========================================================
- * Round Buttons
- * ==========================================================
- */
 
 #ab {
-  display: block;
-  position: relative;
+  display: flex;
   width: 120px;
   height: 150px;
+  position: relative;
 }
 
-#ab .button {
+#a,
+#b {
   width: 50px;
   height: 50px;
-  line-height: 50px;
-  border-radius: 50%;
-  color: var(--text-color);
-  font-weight: 700;
-  text-align: center;
+  border-radius: 25px;
+  border: 1px solid var(--accent-color);
   position: absolute;
 }
 
@@ -314,4 +177,16 @@ button {
 #b {
   top: 44%;
   left: 0%;
+}
+
+#log {
+  position: absolute;
+  height: 250px;
+  width: 100vw;
+  top: 21px;
+  left: 0;
+  overflow: scroll;
+  line-height: 0;
+  color: black;
+  background-color: rgba(255, 255, 255, 0.5);
 }
