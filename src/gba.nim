@@ -48,6 +48,9 @@ when defined(emscripten):
   proc emscripten_set_main_loop_arg(fun: em_arg_callback_func, arg: pointer, fps, simulate_infinite_loop: cint) {.header: "<emscripten.h>".}
   proc emscripten_cancel_main_loop() {.header: "<emscripten.h>".}
   proc initFromEmscripten() {.exportc.} =
+    emscripten_cancel_main_loop() # cancel the main loop if it's running
+    cycleCount = 0 # reset the cycle count
+    # todo: memory is leaked when each new rom is loaded
     var gba = newGBA("bios.bin", "rom.gba")
     emscripten_set_main_loop_arg(cast[em_arg_callback_func](loop), cast[pointer](gba), -1, 1)
 else:
