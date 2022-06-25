@@ -115,6 +115,10 @@ proc scanline(ppu: PPU) =
     for layer in 0 ..< 4:
       renderTextLayer(ppu.vram, layer)
     composite(ppu.pram, scanline)
+  of 1:
+    for layer in 0..<3:
+      renderTextLayer(ppu.vram, layer)
+    composite(ppu.pram, scanline)
   of 3:
     for col in 0 ..< width:
       scanline[col] = cast[ptr FrameBuffer](addr ppu.vram)[rowBase + col]
