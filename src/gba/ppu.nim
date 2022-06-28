@@ -2,6 +2,8 @@ import bitops, strutils
 
 import types, util, display, interrupts, regs, scheduler
 
+using ppu: PPU
+
 const
   width = 240
   height = 160
@@ -10,10 +12,50 @@ type
   Buffer[width, height: static int, T] = array[width * height, T]
   FrameBuffer = Buffer[width, height, uint16]
   Scanline = array[width, uint16]
+  SpritePixel = object # metadata about a sprite at a pixel
+    priority: uint16
+    palette: uint16
+    blends: bool
+    window: bool
+  Sprite* {.packed.} = object
+    # attr0
+    top {.bitsize:8.}: cuint
+    objMode {.bitsize:2.}: ObjMode
+    gfxMode {.bitsize:2.}: GfxMode
+    mosaic {.bitsize:1.}: bool
+    colorMode {.bitsize:1.}: ColorMode
+    shape {.bitsize:2.}: SpriteShape
+    # attr1
+    left {.bitsize:9.}: cuint
+    affineIdx {.bitsize:5.}: cuint
+    size {.bitsize:2.}: cuint
+    # attr2
+    baseTileIdx {.bitsize:10.}: cuint
+    priority {.bitsize:2.}: cuint
+    paletteBank {.bitsize:4.}: cuint
+    # buffer for affine params, which are interlaced in oam
+    affineBuffer {.bitsize:16.}: cuint
+  ObjMode = enum
+    normal, affine, disabled, double
+  GfxMode = enum
+    none, blend, window, forbiddenMode
+  ColorMode = enum
+    fourBpp, eightBpp
+  SpriteShape = enum
+    square, wide, tall, forbiddenShape
+
+const
+  spriteSizes: array[SpriteShape, array[4, tuple[width, height: uint]]] = [
+    square: [(8'u, 8'u), (16'u, 16'u), (32'u, 32'u), (64'u, 64'u)],
+    wide: [(16'u, 8'u), (32'u, 8'u), (32'u, 16'u), (64'u, 32'u)],
+    tall: [(8'u, 16'u), (8'u, 32'u), (16'u, 32'u), (32'u, 64'u)],
+    forbiddenShape: [(0'u, 0'u), (0'u, 0'u), (0'u, 0'u), (0'u, 0'u)]
+  ]
 
 var
   framebuffer: FrameBuffer
   layerBuffers: array[4, Scanline]
+  spriteBuffer: array[width, SpritePixel]
 
   dispcnt: DISPCNT
   greenSwap: uint16
@@ -52,8 +94,11 @@ proc seIndex(tileX, tileY, screenSize: SomeInteger): SomeInteger =
   if tileX >= 32: result += 0x03E0
   if tileY >= 32 and screenSize == 0b11: result += 0x0400
 
-proc renderTextLayer(vram: array[0x18000, uint8], layer: SomeInteger) =
-  if not(dispcnt.controlBits.bit(layer)): return
+proc hFlip(sprite: Sprite): bool = bit(sprite.affineIdx, 3)
+proc vFlip(sprite: Sprite): bool = bit(sprite.affineIdx, 4)
+
+proc renderTextLayer(ppu; layer: SomeInteger) =
+  if not dispcnt.controlBits.bit(layer): return
   let
     bgcnt = bgcnts[layer]
     bghof = bghofs[layer].offset
@@ -72,17 +117,67 @@ proc renderTextLayer(vram: array[0x18000, uint8], layer: SomeInteger) =
     let
       effectiveX = (col + bghof) mod bgWidth
       tileX = effectiveX shr 3
-      screenEntry = read[uint16](vram, screenBase, seIndex(tileX, tileY, bgcnt.screenSize))
+      screenEntry = read[uint16](ppu.vram, screenBase, seIndex(tileX, tileY, bgcnt.screenSize))
       tileId = screenEntry.bitsliced(0..9)
       paletteBank = screenEntry.bitsliced(12..15).uint8
       x = (effectiveX and 7) xor (7 * screenEntry.bitsliced(10..10))
       y = (effectiveY and 7) xor (7 * screenEntry.bitsliced(11..11))
-    var paletteIndex = (vram[charBase + tileId * 0x20 + y * 4 + (x shr 1)] shr ((x and 1) * 4)) and 0xF
+    var paletteIndex = (ppu.vram[charBase + tileId * 0x20 + y * 4 + (x shr 1)] shr ((x and 1) * 4)) and 0xF
     if paletteIndex > 0: paletteIndex += paletteBank shl 4
     layerBuffers[layer][col] = paletteIndex
 
+proc getPaletteIdx(ppu; sprite: Sprite, width, height, internalX, internalY: SomeInteger): uint16 =
+  const spriteBase = 0x10000'u
+  let widthInTiles = width shr 3
+  var
+    internalX = internalX
+    internalY = internalY
+  if sprite.hFlip(): internalX = width - internalX - 1
+  if sprite.vFlip(): internalY = height - internalY - 1
+  let tileX = internalX and 7
+  let tileY = internalY and 7
+  if sprite.colorMode == fourBpp:
+    const tileWidth = 0x20'u
+    let tileNum =
+      if dispcnt.obj1d:
+        sprite.baseTileIdx + (internalY shr 3) * widthInTiles + (internalX shr 3)
+      else:
+        sprite.baseTileIdx + (internalY shr 3) * 32           + (internalX shr 3)
+    let bytesIntoTile = tileY * 4 + (tileX shr 1)
+    let palettes = read[uint8](ppu.vram, spriteBase, tileWidth * tileNum + bytesIntoTile)
+    result = (palettes shr ((tileX and 1) * 4)) and 0xF
+    if result > 0: # pixel isn't transparent
+      result = result + (sprite.paletteBank.uint16 shl 4) # adjust for bank
+  else:
+    echo "8bpp"
+
+proc renderSprites(ppu) =
+  if not dispcnt.controlBits.bit(4): return
+  let sprites = cast[array[128, Sprite]](ppu.oam)
+  for idx, sprite in sprites:
+    if sprite.objMode == disabled: continue
+    if sprite.gfxMode == forbiddenMode: continue
+    if sprite.shape == forbiddenShape: continue
+    let (width, height) = spriteSizes[sprite.shape][sprite.size]
+    if vcount in sprite.top ..< sprite.top + height.uint:
+      let internalY = vcount - sprite.top
+      for screenX in max(0'u, sprite.left) ..< min(240'u, sprite.left + width.uint):
+        let internalX = screenX - sprite.left
+        let spritePixel = SpritePixel(
+          priority: sprite.priority.uint16,
+          palette: ppu.getPaletteIdx(sprite, width, height, internalX, internalY),
+          blends: sprite.gfxMode == blend,
+          window: sprite.gfxMode == window # todo: respect hijacking
+        )
+        let existing = spriteBuffer[screenX]
+        if spritePixel.priority < existing.priority or existing.palette == 0:
+          spriteBuffer[screenX] = spritePixel
+
 proc calculateColor(pram: array[0x400, uint8], col: SomeInteger): uint16 =
+  let spritePixel = spriteBuffer[col]
   for priority in 0'u32 ..< 4'u32:
+    if spritePixel.priority == priority and spritePixel.palette > 0:
+      return read[uint16](pram, 0x200'u16, spritePixel.palette)
     for layer in 0 ..< 4:
       let bgcnt = bgcnts[layer]
       if bgcnt.priority == priority:
@@ -107,17 +202,19 @@ proc scanline(ppu: PPU) =
     row = int(vcount)
     rowBase = row * width
   var scanline = framebuffer.getLine(row)
+  for col in 0 ..< width: spriteBuffer[col] = SpritePixel(priority: 4)
   for layer in 0 ..< 4:
     for pixel in layerBuffers[layer].mitems:
       pixel = 0
   case dispcnt.mode
   of 0:
     for layer in 0 ..< 4:
-      renderTextLayer(ppu.vram, layer)
+      ppu.renderTextLayer(layer)
+    ppu.renderSprites()
     composite(ppu.pram, scanline)
   of 1:
-    for layer in 0..<3:
-      renderTextLayer(ppu.vram, layer)
+    for layer in 0 ..< 3:
+      ppu.renderTextLayer(layer)
     composite(ppu.pram, scanline)
   of 3:
     for col in 0 ..< width:
