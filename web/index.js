@@ -53,6 +53,7 @@ document
 
 var Module = {
   canvas: (() => document.getElementById("canvas"))(),
+  print: log,
 };
 
 const pressKey = (keycode, down = true) => {

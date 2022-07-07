@@ -116,3 +116,38 @@ suite "write":
   test "diff type both offset":
     write(a, 1, 1, 0x5040'u16)
     check(a == [0x01'u8, 0x02'u8, 0x03'u8, 0x40'u8, 0x50'u8, 0x06'u8])
+
+suite "readByte":
+  let
+    u8: uint8 = 0x12
+    u16: uint16 = 0x1234
+    u32: uint32 = 0x12345678
+
+  test "in valid range":
+    check(readByte(u8, 0) == 0x12)
+    check(readByte(u16, 1) == 0x12)
+    check(readByte(u16, 0) == 0x34)
+    check(readByte(u32, 3) == 0x12)
+    check(readByte(u32, 2) == 0x34)
+    check(readByte(u32, 1) == 0x56)
+    check(readByte(u32, 0) == 0x78)
+    
+suite "writeByte":
+  var
+    u8: uint8
+    u16: uint16
+    u32: uint32
+
+  setUp:
+    u8 = 0x12
+    u16 = 0x1234
+    u32 = 0x12345678
+
+  test "in valid range":
+    writeByte(u8, 0, 0x78)
+    check(u8 == 0x78)
+    writeByte(u32, 3, 0xDE)
+    writeByte(u32, 2, 0xAD)
+    writeByte(u32, 1, 0xBE)
+    writeByte(u32, 0, 0xEF)
+    check(u32 == 0xDEADBEEF'u32)

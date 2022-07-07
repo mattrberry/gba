@@ -1,94 +1,97 @@
 import math, sdl2/audio, system
-from sdl2 import delay
 
-import scheduler, types
-import apu/[resampler, channel1]
+import util, scheduler, types
 
 const
   cpuClock = 2 ^ 24
-  channels = 1 # Left / Right
-  bufferSize = 1024 * 8
+  channels = 2 # Left / Right
+  bufferSize = 1024 * 2
   sampleRate = 32768 # Hz
-  samplePeriod = cpuClock div sampleRate
-  frameSequencerRate = 512 # Hz
-  frameSequencerPeriod = cpuClock div frameSequencerRate
-
-  freqDelta = 0.002
+  samplePeriod = cpuClock div sampleRate # 512 Hz
 
 var
-  frameSequencerStage = 0
-
   audioSpec: AudioSpec
   obtainedSpec: AudioSpec
 
-  dev: AudioDeviceID
-
-  bufferPos: int
   buffer = newSeq[float32]()
-  resample = newResampler[float32](buffer)
-  lastFreq = sampleRate
+
+  soundbias: uint16
 
 proc getSample(apu: APU): proc()
-proc tickFrameSequencer(apu: APU): proc()
+
+const
+  freq = 1000 # hz
+  
+var x: float32 = 0
+var y: float32 = 0
+
+proc audioCallback(userdata: pointer, stream: ptr uint8, len: cint) {.cdecl.} =
+  echo "Audio callback"
+  
+  if isNil(stream):
+    echo "Stream is nil!"
+    return
+
+  if len div 4 div 2 != obtainedSpec.samples.int:
+    echo "Len is wrong. ", obtainedSpec.samples.int, ", ", len
+    # return
+
+  # var stream = cast[ptr UncheckedArray[float32]](stream)
+
+  # let targetSamples = obtainedSpec.samples.int
+  # let actualSamples = buffer.len
+  # echo "Target: ", targetSamples, ", actual: ", actualSamples
+  # buffer.setLen(0)
+
+  # sine wave
+  # for i in 0 ..< obtainedSpec.samples.int:
+  #   let sample = sin(x)
+  #   stream[i * 2] = sample
+  #   stream[i * 2 + 1] = sample
+  #   x += 2 * PI / (obtainedSpec.freq / freq)
 
 proc newAPU*(gba: GBA): APU =
   new result
   result.gba = gba
-  # todo: enable and touch up the apu
-  # result.channel1 = newChannel1(gba.scheduler)
-  # cast[Channel1](result.channel1).trigger()
 
-  # audioSpec.freq = sampleRate
-  # audioSpec.format = AUDIO_F32
-  # audioSpec.channels = channels
-  # audioSpec.samples = bufferSize
-  # audioSpec.callback = nil
-  # audioSpec.userdata = nil
+  audioSpec.freq = sampleRate
+  audioSpec.format = AUDIO_F32
+  audioSpec.channels = channels
+  audioSpec.samples = bufferSize
+  audioSpec.padding = 0
+  audioSpec.callback = audioCallback
+  audioSpec.userdata = nil
 
-  # dev = openAudioDevice(nil, 0, addr audioSpec, addr obtainedSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE)
-  # pauseAudioDevice(dev, 0)
+  if openAudio(addr audioSpec, addr obtainedSpec) != 0:
+    quit "Couldn't open audio device."
+  pauseAudio(0)
 
-  # resample.setFreqs(sampleRate, obtainedSpec.freq)
+  echo audioSpec
+  echo obtainedSpec
 
   # gba.scheduler.schedule(samplePeriod, result.getSample(), EventType.apu)
-  # gba.scheduler.schedule(frameSequencerPeriod, result.tickFrameSequencer(), EventType.apu)
+
+proc timerOverflow*(gba: GBA, timer: int) = discard
 
 proc getSample(apu: APU): proc() = (proc() =
   apu.gba.scheduler.schedule(samplePeriod, apu.getSample(), EventType.apu)
-  let channel1Amp = cast[Channel1](apu.channel1).getAmplitude()
-  bufferPos += 1
-  resample.write(channel1Amp)
 
-  if bufferPos >= bufferSize:
-    when defined(emscripten):
-      let fillLevel = getQueuedAudioSize(dev)
-      lastFreq = int((1 + (int(2 * (int(fillLevel) div sizeof(float32)) - bufferSize) / bufferSize) * freqDelta) * float(lastFreq))
-      resample.setFreqs(lastFreq, obtainedSpec.freq)
-    else:
-      while getQueuedAudioSize(dev) > bufferSize * sizeof(float32) * 2:
-        delay(1)
-    discard queueAudio(dev, unsafeAddr resample.output[0], uint32(resample.output.len * sizeof(float32)))
-    bufferPos = 0
-    resample.output.setLen(0)
+  let sample = sin(y)
+  buffer.add(sample) # left
+  buffer.add(sample) # right
+  y += 2 * PI / (obtainedSpec.freq / 1000)
 )
 
-proc tickFrameSequencer(apu: APU): proc() = (proc() =
-  apu.gba.scheduler.schedule(frameSequencerPeriod, apu.tickFrameSequencer(), EventType.apu)
-  case frameSequencerStage
-  of 0:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 2:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 4:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 6:
-    cast[Channel1](apu.channel1).lengthStep()
-  else: discard
-  frameSequencerStage = (frameSequencerStage + 1) and 7)
-
 proc `[]`*(apu: APU, address: SomeInteger): uint8 =
-  echo "Unmapped APU read: " & address.toHex(8)
-  0
+  case address
+  of 0x88..0x89: readByte(soundBias, address and 1)
+  of 0xA0..0xA7: 0 # dma channels
+  else: echo "Unmapped APU read: ", address.toHex(8); 0
 
 proc `[]=`*(apu: APU, address: SomeInteger, value: uint8) =
-  echo "Unmapped APU write: ", address.toHex(8), " = ", value.toHex(2)
+  case address
+  of 0x88..0x89: writeByte(soundBias, address and 1, value)
+  of 0xA0..0xA7:
+    echo "Wrote ", value.toHex(8), " to ", address.toHex(8)
+    let channel = bit(address, 2).uint
+  else: discard # echo "Unmapped APU write: ", address.toHex(8), " = ", value.toHex(2)

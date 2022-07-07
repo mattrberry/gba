@@ -1,5 +1,3 @@
-import strutils
-
 import types, regs, interrupts
 
 const
@@ -19,18 +17,32 @@ proc newDMA*(gba: GBA): DMA =
   result.gba = gba
 
 proc trigger(gba: GBA, channel: SomeInteger) =
-  let
-    dmacnt = dmacnt_h[channel]
-    len = dmacnt_l[channel]
-    transferSize = transferBytes[dmacnt.transfer]
-    srcDelta  = transferSize * addressAdjustments[dmacnt.srcCtrl]
-    dstDelta  = transferSize * addressAdjustments[dmacnt.dstCtrl]
+  let dmacnt = dmacnt_h[channel]
+  var len = dmacnt_l[channel]
+  var transfer = dmacnt.transfer
+  var dstCtrl = dmacnt.dstCtrl
 
   if dmacnt.srcCtrl == DmaAddressControl.reload:
     echo "Prohibited source address control"
 
+  if dmacnt.timing == special:
+    if channel == 1 or channel == 2: # dma audio
+      echo "DMA: Audio on channel ", channel
+      len = 4
+      transfer = DmaChunkSize.word
+      dstCtrl = fixed
+    elif channel == 3:
+      echo "todo: video capture dma"
+    else:
+      echo "Prohibited special dma"
+
+  let
+    transferSize = transferBytes[transfer]
+    srcDelta  = transferSize * addressAdjustments[dmacnt.srcCtrl]
+    dstDelta  = transferSize * addressAdjustments[dstCtrl]
+
   for idx in 0 ..< int(len):
-    if dmacnt.transfer == DmaChunkSize.halfword:
+    if transfer == DmaChunkSize.halfword:
       gba.bus[dst[channel]] = gba.bus.read[:uint16](src[channel])
     else:
       gba.bus[dst[channel]] = gba.bus.read[:uint32](src[channel])
@@ -60,7 +72,7 @@ proc `[]`*(dma: DMA, address: SomeInteger): uint8 =
   of 4..7: read(dmadad[channel], address and 3)
   of 8..9: read(dmacnt_l[channel], address and 1)
   of 10..11: read(dmacnt_h[channel], address and 1)
-  else: echo "Unmapped DMA read: " & address.toHex(8); 0
+  else: echo "Unmapped DMA read: ", address.toHex(8); 0
 
 proc `[]=`*(dma: DMA, address: SomeInteger, value: uint8) =
   let

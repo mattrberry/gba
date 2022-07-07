@@ -147,7 +147,7 @@ proc getPaletteIdx(ppu; sprite: Sprite, width, height, internalX, internalY: Som
     let palettes = read[uint8](ppu.vram, spriteBase, tileWidth * tileNum + bytesIntoTile)
     result = (palettes shr ((tileX and 1) * 4)) and 0xF
     if result > 0: # pixel isn't transparent
-      result = result + (sprite.paletteBank.uint16 shl 4) # adjust for bank
+      result += (sprite.paletteBank.uint16 shl 4) # adjust for bank
   else:
     echo "8bpp"
 
@@ -224,7 +224,7 @@ proc scanline(ppu: PPU) =
     for col in 0 ..< width:
       let palIdx = ppu.vram[base + rowBase + col]
       scanline[col] = cast[ptr FrameBuffer](addr ppu.pram)[palIdx]
-  else: echo "Unsupported background mode " & $dispcnt.mode
+  else: echo "Unsupported background mode ", dispcnt.mode
 
 proc startLine(ppu: PPU): proc() = (proc() =
   ppu.gba.scheduler.schedule(960, startHblank(ppu), EventType.ppu))
@@ -278,7 +278,7 @@ proc `[]`*(ppu: PPU, address: SomeInteger): uint8 =
   of 0x50..0x51: read(bldcnt, address and 1)
   of 0x52..0x53: read(bldalpha, address and 1)
   of 0x54..0x55: read(bldy, address and 1)
-  else: echo "Unmapped PPU read: " & address.toHex(4); 0
+  else: echo "Unmapped PPU read: ", address.toHex(4); 0
 
 proc `[]=`*(ppu: PPU, address: SomeInteger, value: uint8) =
   case address:

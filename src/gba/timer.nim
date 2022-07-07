@@ -1,4 +1,4 @@
-import types, interrupts, regs, scheduler
+import types, apu, interrupts, regs, scheduler
 
 const
   periods = [1'u16, 64, 256, 1024]
@@ -30,6 +30,7 @@ proc overflow(timer: Timer, num: SomeInteger): proc() = (proc() =
     counter[num + 1] += 1
     if counter[num + 1] == 0: timer.overflowProcs[num + 1]()
   # todo: handle apu logic
+  timerOverflow(timer.gba, num)
   if tmcnt[num].irq:
     case num:
     of 0: timer.gba.interrupts.regIf.timer0 = true

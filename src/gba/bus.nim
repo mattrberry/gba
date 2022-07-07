@@ -1,4 +1,4 @@
-import bitops, strutils
+import bitops
 
 import types, util, mmio, save, ppu
 
@@ -61,7 +61,7 @@ proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
        0xA, 0xB,
        0xC, 0xD: cast[ptr T](addr bus.rom[aligned and 0x01FFFFFF])[]
     of 0xE, 0xF: cast[T](bus.save[aligned])
-    else: quit "Unmapped " & $T & " read: " & aligned.toHex(8)
+    else: echo "Unmapped ", T, " read: ", aligned.toHex(8); 0
 
 proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
   let
@@ -99,7 +99,7 @@ proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
     when T is not uint8: # byte writes are not permitted
       cast[ptr T](addr bus.gba.ppu.oam[aligned and 0x3FF])[] = value
   of 0xE, 0xF: bus.save[aligned] = cast[uint8](value)
-  else: echo "Unmapped " & $T & " write: " & index.toHex(8) & " = " & value.toHex(sizeof(T) * 2)
+  else: echo "Unmapped ", T, " write: ", index.toHex(8), " = ", value.toHex(sizeof(T) * 2)
 
 proc readRotate*[T: uint16 | uint32](bus: Bus, index: uint32): uint32 =
   let

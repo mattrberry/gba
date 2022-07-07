@@ -57,6 +57,8 @@ proc loop(gba: GBA) {.cdecl.} =
   let curTime = getTime()
   let elapsed = curTime - time
   time = curTime
+  # todo: cap cyclesToRun so we return to the input check quickly
+  # even when running slowly
   let cyclesToRun = int(elapsed * cyclesPerSecond)
   runCycles(gba, cyclesToRun)
   checkKeyInput(gba)

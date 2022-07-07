@@ -20,15 +20,25 @@ func signExtend*[T: SomeUnsignedInt](value: SomeUnsignedInt, bit: Natural): T =
   if value.bit(bit): result = result or (high(T) shl bit)
 
 # pointer arithmetic
-func `+`[T](p: ptr T, offset: int): ptr T {.inline.} = cast[ptr T](cast[int](p) + offset * sizeof(T))
-func `[]`[T](p: ptr T, offset: int): T {.inline.} = (p + offset)[]
-func `[]=`[T](p: ptr T, offset: int, val: T) {.inline.} = (p + offset)[] = val
+func `+`*[T](p: ptr T, offset: int): ptr T {.inline.} = cast[ptr T](cast[int](p) + offset * sizeof(T))
+func `[]`*[T](p: ptr T, offset: int): T {.inline.} = (p + offset)[]
+func `[]=`*[T](p: ptr T, offset: int, val: T) {.inline.} = (p + offset)[] = val
 
 func read*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger): T {.inline.} =
   cast[ptr T](unsafeAddr(val[a.int]))[b.int]
 
 func write*[T: SomeUnsignedInt](val: openarray[auto], a, b: SomeInteger, value: T) {.inline.} =
   cast[ptr T](unsafeAddr(val[a.int]))[b.int] = value
+
+func readByte*(val: SomeUnsignedInt, pos: SomeInteger): uint8 =
+  cast[uint8](val shr (pos * 8))
+
+func writeByte*[T: SomeUnsignedInt](val: var T, pos: SomeInteger, b: byte) =
+  let
+    shift = pos * 8
+    mask = not(cast[T](0xFF) shl shift)
+    toWrite = cast[T](b) shl shift
+  val = (val and mask) or toWrite
 
 proc nanosleep(nanoseconds: SomeInteger) =
   var a, b: Timespec

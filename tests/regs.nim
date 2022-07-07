@@ -1,5 +1,4 @@
 import unittest
-import strutils
 
 import ../src/gba/regs
 
