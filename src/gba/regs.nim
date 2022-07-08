@@ -78,7 +78,7 @@ type
     objHSize* {.bitsize:4.}: cuint
     objVSize* {.bitsize:4.}: cuint
 
-  BLDCNT* {.packed.} = object
+  BLDCNT* {.packed.} = object # Probably can make a set aswell
     bg0First* {.bitsize:1.}: bool
     bg1First* {.bitsize:1.}: bool
     bg2First* {.bitsize:1.}: bool
@@ -127,54 +127,47 @@ type
     enable* {.bitsize:1.}: bool
     notUsed2* {.bitsize:8.}: cuint
 
-  KeypadRegs = KEYINPUT | KEYCNT
+  KeypadRegs = KeyInputs | KEYCNT
 
-  KEYINPUT* {.packed.} = object
-    a* {.bitsize:1.}: bool
-    b* {.bitsize:1.}: bool
-    select* {.bitsize:1.}: bool
-    start* {.bitsize:1.}: bool
-    right* {.bitsize:1.}: bool
-    left* {.bitsize:1.}: bool
-    up* {.bitsize:1.}: bool
-    down* {.bitsize:1.}: bool
-    r* {.bitsize:1.}: bool
-    l* {.bitsize:1.}: bool
-    notUsed* {.bitsize:6.}: cuint
+  KeyInput* = enum
+    a
+    b
+    select
+    start
+    right
+    left
+    up
+    down
+    r
+    l
+
+  KeyInputs* = set[KeyInput]
 
   KEYCNT* {.packed.} = object
-    a* {.bitsize:1.}: bool
-    b* {.bitsize:1.}: bool
-    select* {.bitsize:1.}: bool
-    start* {.bitsize:1.}: bool
-    right* {.bitsize:1.}: bool
-    left* {.bitsize:1.}: bool
-    up* {.bitsize:1.}: bool
-    down* {.bitsize:1.}: bool
-    r* {.bitsize:1.}: bool
-    l* {.bitsize:1.}: bool
+    inputs: KeyInputs
     notUsed* {.bitsize:4.}: cuint
     irqEnable* {.bitsize:1.}: bool
     irqCondition* {.bitsize:1.}: bool
 
-  MiscRegs = INTERRUPT | WAITCNT
+  MiscRegs = InterruptFlags | WAITCNT
 
-  INTERRUPT* {.packed.} = object
-    vblank* {.bitsize:1.}: bool
-    hblank* {.bitsize:1.}: bool
-    vcount* {.bitsize:1.}: bool
-    timer0* {.bitsize:1.}: bool
-    timer1* {.bitsize:1.}: bool
-    timer2* {.bitsize:1.}: bool
-    timer3* {.bitsize:1.}: bool
-    serial* {.bitsize:1.}: bool
-    dma0* {.bitsize:1.}: bool
-    dma1* {.bitsize:1.}: bool
-    dma2* {.bitsize:1.}: bool
-    dma3* {.bitsize:1.}: bool
-    keypad* {.bitsize:1.}: bool
-    gamepak* {.bitsize:1.}: bool
-    notUsed* {.bitsize:2.}: cuint
+  Interrupt* = enum
+    vblank
+    hblank
+    vcount
+    timer0
+    timer1
+    timer2
+    timer3
+    serial
+    dma0
+    dma1
+    dma2
+    dma3
+    keypad
+    gamepak
+
+  InterruptFlags* = set[Interrupt]
 
   WAITCNT* {.packed.} = object
     sramWaitControl* {.bitsize:2.}: cuint

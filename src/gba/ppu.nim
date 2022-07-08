@@ -192,7 +192,7 @@ proc composite(pram: array[0x400, uint8], scanline: ptr Scanline) =
 
 proc getLine(buffer: var FrameBuffer, row: SomeInteger): ptr Scanline =
   result = cast[ptr array[buffer.width, buffer.T]](addr buffer[buffer.width * row])
-  for pixel in result[].mitems: pixel = 0
+  reset(result[])
 
 proc draw(ppu: PPU) =
   ppu.gba.display.draw(framebuffer)
@@ -232,7 +232,7 @@ proc startLine(ppu: PPU): proc() = (proc() =
 proc startHblank(ppu: PPU): proc() = (proc() =
   dispstat.hblank = true
   if dispstat.hblankEnable:
-    ppu.gba.interrupts.regIf.hblank = true
+    ppu.gba.interrupts.regIf.incl hblank
     ppu.gba.interrupts.scheduleCheck()
   if vcount < height: ppu.scanline()
   ppu.gba.scheduler.schedule(272, endHblank(ppu), EventType.ppu))
@@ -241,12 +241,12 @@ proc endHblank(ppu: PPU): proc() = (proc() =
   dispstat.hblank = false
   vcount = (vcount + 1) mod 228
   dispstat.vcount = dispstat.vcountTarget == vcount
-  if dispstat.vcountEnable and dispstat.vcount: ppu.gba.interrupts.regIf.vcount = true
+  if dispstat.vcountEnable and dispstat.vcount: ppu.gba.interrupts.regIf.incl Interrupt.vcount
   if vcount == 0:
     dispstat.vblank = false
   elif vcount == height:
     dispstat.vblank = true
-    if dispstat.vblankEnable: ppu.gba.interrupts.regIf.vblank = true
+    if dispstat.vblankEnable: ppu.gba.interrupts.regIf.incl vblank
     ppu.draw()
   ppu.gba.interrupts.scheduleCheck()
   ppu.gba.scheduler.schedule(0, startLine(ppu), EventType.ppu))

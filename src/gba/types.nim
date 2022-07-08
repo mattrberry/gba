@@ -58,8 +58,8 @@ type
   Interrupts* = ref object
     gba*: GBA
     ime*: bool
-    regIe*: INTERRUPT
-    regIf*: INTERRUPT
+    regIe*: InterruptFlags
+    regIf*: InterruptFlags
 
   Timer* = ref object
     gba*: GBA

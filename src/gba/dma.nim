@@ -42,12 +42,11 @@ proc trigger(gba: GBA, channel: SomeInteger) =
   if not dmacnt.repeat or dmacnt.timing == DmaStartTiming.immediate:
     dmacnt_h[channel].enable = false
   if dmacnt.irq:
-    case channel:
-    of 0: gba.interrupts.regIf.dma0 = true
-    of 1: gba.interrupts.regIf.dma1 = true
-    of 2: gba.interrupts.regIf.dma2 = true
-    of 3: gba.interrupts.regIf.dma3 = true
-    else: quit "Bad dma channel. Impossible case."
+    if channel in typeof(channel)(0)..typeof(channel)(3):
+      const dmaArr = [dma0, dma1, dma2, dma3]
+      gba.interrupts.regIf.incl dmaArr[channel]
+    else:
+      quit "Bad dma channel. Impossible case."
     gba.interrupts.scheduleCheck()
 
 proc `[]`*(dma: DMA, address: SomeInteger): uint8 =

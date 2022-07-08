@@ -2,7 +2,7 @@ import types, interrupts, regs, scheduler
 
 const
   periods = [1'u16, 64, 256, 1024]
-  events = [timer0, timer1, timer2, timer3]
+  events = [EventType.timer0, timer1, timer2, timer3]
 
 var
   reload: array[4, uint16]
@@ -31,12 +31,11 @@ proc overflow(timer: Timer, num: SomeInteger): proc() = (proc() =
     if counter[num + 1] == 0: timer.overflowProcs[num + 1]()
   # todo: handle apu logic
   if tmcnt[num].irq:
-    case num:
-    of 0: timer.gba.interrupts.regIf.timer0 = true
-    of 1: timer.gba.interrupts.regIf.timer1 = true
-    of 2: timer.gba.interrupts.regIf.timer2 = true
-    of 3: timer.gba.interrupts.regIf.timer3 = true
-    else: quit "Bad timer number. Impossible case."
+    if num in typeof(num)(0)..typeof(num)(3):
+      const timers = [Interrupt.timer0, timer1, timer2, timer3]
+      timer.gba.interrupts.regIf.incl timers[num]
+    else:
+      quit "Bad timer number. Impossible case."
     timer.gba.interrupts.scheduleCheck()
   if not tmcnt[num].cascade:
     scheduleTimer(timer, num))

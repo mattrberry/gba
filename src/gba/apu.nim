@@ -55,7 +55,7 @@ proc newAPU*(gba: GBA): APU =
 
 proc getSample(apu: APU): proc() = (proc() =
   apu.gba.scheduler.schedule(samplePeriod, apu.getSample(), EventType.apu)
-  let channel1Amp = cast[Channel1](apu.channel1).getAmplitude()
+  let channel1Amp = Channel1(apu.channel1).getAmplitude()
   bufferPos += 1
   resample.write(channel1Amp)
 
@@ -75,14 +75,8 @@ proc getSample(apu: APU): proc() = (proc() =
 proc tickFrameSequencer(apu: APU): proc() = (proc() =
   apu.gba.scheduler.schedule(frameSequencerPeriod, apu.tickFrameSequencer(), EventType.apu)
   case frameSequencerStage
-  of 0:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 2:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 4:
-    cast[Channel1](apu.channel1).lengthStep()
-  of 6:
-    cast[Channel1](apu.channel1).lengthStep()
+  of 0, 2, 4, 6:
+    Channel1(apu.channel1).lengthStep()
   else: discard
   frameSequencerStage = (frameSequencerStage + 1) and 7)
 

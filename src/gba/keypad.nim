@@ -3,8 +3,9 @@ import sdl2
 import types, regs
 
 var
-  keyinput = cast[KEYINPUT](0xFFFF'u16)
+  keyinput = {KeyInput.low..KeyInput.high}
   keycnt = cast[KEYCNT](0xFFFF'u16)
+static: assert sizeof(KeyInputs) == sizeof(uint16)
 
 proc newKeypad*(gba: GBA): Keypad =
   new result
@@ -25,15 +26,15 @@ proc `[]=`*(keypad: Keypad, address: SomeInteger, value: uint8) =
 proc keyEvent*(keypad: Keypad, event: KeyboardEventObj) =
   let bit = not(bool(event.state))
   case event.keysym.scancode
-  of SDL_SCANCODE_E: keyinput.up = bit
-  of SDL_SCANCODE_D: keyinput.down = bit
-  of SDL_SCANCODE_S: keyinput.left = bit
-  of SDL_SCANCODE_F: keyinput.right = bit
-  of SDL_SCANCODE_W: keyinput.l = bit
-  of SDL_SCANCODE_R: keyinput.r = bit
-  of SDL_SCANCODE_J: keyinput.b = bit
-  of SDL_SCANCODE_K: keyinput.a = bit
-  of SDL_SCANCODE_L: keyinput.select = bit
-  of SDL_SCANCODE_SEMICOLON: keyinput.start = bit
+  of SDL_SCANCODE_E: keyinput.incl up
+  of SDL_SCANCODE_D: keyinput.incl down
+  of SDL_SCANCODE_S: keyinput.incl left
+  of SDL_SCANCODE_F: keyinput.incl right
+  of SDL_SCANCODE_W: keyinput.incl l
+  of SDL_SCANCODE_R: keyinput.incl r
+  of SDL_SCANCODE_J: keyinput.incl b
+  of SDL_SCANCODE_K: keyinput.incl a
+  of SDL_SCANCODE_L: keyinput.incl select
+  of SDL_SCANCODE_SEMICOLON: keyinput.incl start
   of SDL_SCANCODE_Q: quit "quit q"
   else: discard
