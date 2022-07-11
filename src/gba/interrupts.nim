@@ -9,7 +9,7 @@ proc checkInterrupts(interrupts: Interrupts): proc() = (proc() =
     interrupts.gba.cpu.halted = false
     if interrupts.ime: interrupts.gba.cpu.interrupt(interrupts.gba.cpu))
 
-proc scheduleCheck*(interrupts: Interrupts) {.gcsafe locks: 0.} =
+proc scheduleCheck*(interrupts: Interrupts) =
   interrupts.gba.scheduler.schedule(0, checkInterrupts(interrupts), EventType.interrupt)
 
 proc `[]`*(interrupts: Interrupts, address: SomeInteger): uint8 =

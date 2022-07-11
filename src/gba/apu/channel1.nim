@@ -1,4 +1,4 @@
-import ../scheduler, ../types
+import ../scheduler, ../types as t
 
 const
   waveDuty: array[4, array[8, int16]] = [
@@ -9,7 +9,7 @@ const
   ]
 
 type
-  Channel1* = ref object of Channel
+  Channel1* = ref object of t.Channel
     duty: int
     waveDutyPosition: int
     lengthLoad: int
