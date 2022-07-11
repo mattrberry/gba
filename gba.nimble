@@ -12,6 +12,9 @@ bin           = @["gba"]
 requires "nim >= 1.6.0"
 requires "sdl2 >= 1.0"
 
+task native, "native":
+  exec "nim c -o:gba -d:release --gc:orc --threads:on --threadAnalysis:off src/gba.nim"
+
 task wasm, "wasm":
   exec "nim c -d:emscripten -d:wasm -d:release src/gba.nim"
 
