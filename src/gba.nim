@@ -47,7 +47,9 @@ proc checkKeyInput(gba: GBA) =
   var event = sdl2.defaultEvent
   while pollEvent(event):
     case event.kind
-    of QuitEvent: quit "quit event"
+    of QuitEvent:
+      close_wav_files()
+      quit "quit event"
     of KeyDown, KeyUp: gba.keypad.keyEvent(cast[KeyboardEventObj](event))
     else: discard
 

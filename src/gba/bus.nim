@@ -63,6 +63,8 @@ proc read*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T =
     of 0xE, 0xF: cast[T](bus.save[aligned])
     else: echo "Unmapped ", T, " read: ", aligned.toHex(8); 0
 
+proc readBus*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32): T = read[T](bus, index)
+
 proc `[]=`*[T: uint8 | uint16 | uint32](bus: Bus, index: uint32, value: T) =
   let
     aligned = index.clearMasked(sizeof(T) - 1) # uint32:3, uint16:1

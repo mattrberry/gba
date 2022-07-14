@@ -1,6 +1,6 @@
 import sdl2
 
-import types, regs
+import types, regs, apu
 
 var
   keyinput = cast[KEYINPUT](0xFFFF'u16)
@@ -35,5 +35,7 @@ proc keyEvent*(keypad: Keypad, event: KeyboardEventObj) =
   of SDL_SCANCODE_K: keyinput.a = bit
   of SDL_SCANCODE_L: keyinput.select = bit
   of SDL_SCANCODE_SEMICOLON: keyinput.start = bit
-  of SDL_SCANCODE_Q: quit "quit q"
+  of SDL_SCANCODE_Q:
+    close_wav_files()
+    quit "quit q"
   else: discard

@@ -1,4 +1,4 @@
-import types, regs, interrupts
+import types, regs, interrupts, bus
 
 const
   transferBytes: array[DmaChunkSize, uint32] = [2'u32, 4]
@@ -61,6 +61,13 @@ proc trigger(gba: GBA, channel: SomeInteger) =
     of 3: gba.interrupts.regIf.dma3 = true
     else: quit "Bad dma channel. Impossible case."
     gba.interrupts.scheduleCheck()
+
+proc triggerFifo*(gba: GBA, audioChannel: SomeInteger) =
+  echo "triggering fifo"
+  let dmacnt = dmacnt_h[audioChannel + 1]
+  if dmacnt.enable and dmacnt.timing == special:
+    echo "  channel ", audioChannel + 1
+    trigger(gba, audioChannel + 1)
 
 proc `[]`*(dma: DMA, address: SomeInteger): uint8 =
   let

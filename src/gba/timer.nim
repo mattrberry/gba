@@ -29,8 +29,7 @@ proc overflow(timer: Timer, num: SomeInteger): proc() = (proc() =
   if num < 3 and tmcnt[num + 1].cascade and tmcnt[num + 1].enable:
     counter[num + 1] += 1
     if counter[num + 1] == 0: timer.overflowProcs[num + 1]()
-  # todo: handle apu logic
-  timerOverflow(timer.gba, num)
+  timerOverflow(timer.gba, num) # alert apu of timer 0-1 overflow
   if tmcnt[num].irq:
     case num:
     of 0: timer.gba.interrupts.regIf.timer0 = true

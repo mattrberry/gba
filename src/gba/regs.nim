@@ -12,7 +12,7 @@ type
     immediate, vblank, hblank, special
 
 type
-  Reg16 = PPURegs | DMARegs | TimerRegs | KeypadRegs | MiscRegs
+  Reg16 = PPURegs | DMARegs | TimerRegs | APURegs | KeypadRegs | MiscRegs
 
   PPURegs = DISPCNT | DISPSTAT | BGCNT | BGOFS | WINBOUND | WININ | WINOUT | MOSAIC | BLDCNT | BLDALPHA | BLDY
 
@@ -126,6 +126,45 @@ type
     irq* {.bitsize:1.}: bool
     enable* {.bitsize:1.}: bool
     notUsed2* {.bitsize:8.}: cuint
+
+  APURegs = SOUNDCNT_L | SOUNDCNT_H | SOUNDCNT_X | SOUNDBIAS
+
+  SOUNDCNT_L* {.packed.} = object
+    volR* {.bitsize:3.}: cuint
+    notUsed1 {.bitsize:1.}: bool
+    volL* {.bitsize:3.}: cuint
+    notUsed2 {.bitsize:1.}: bool
+    enableR* {.bitsize:4.}: cuint
+    enableL* {.bitsize:4.}: cuint
+
+  SOUNDCNT_H* {.packed.} = object
+    volPsg* {.bitsize:2.}: cuint
+    volDmaA* {.bitsize:1.}: cuint
+    volDmaB* {.bitsize:1.}: cuint
+    notUsed {.bitsize:4.}: cuint
+    enableRDmaA* {.bitsize:1.}: bool
+    enableLDmaA* {.bitsize:1.}: bool
+    timerDmaA* {.bitsize:1.}: cuint
+    resetDmaA* {.bitsize:1.}: bool
+    enableRDmaB* {.bitsize:1.}: bool
+    enableLDmaB* {.bitsize:1.}: bool
+    timerDmaB* {.bitsize:1.}: cuint
+    resetDmaB* {.bitsize:1.}: bool
+
+  SOUNDCNT_X* {.packed.} = object
+    playingSound1* {.bitsize:1.}: bool
+    playingSound2* {.bitsize:1.}: bool
+    playingSound3* {.bitsize:1.}: bool
+    playingSound4* {.bitsize:1.}: bool
+    notUsed1 {.bitsize:3.}: cuint
+    masterEnable* {.bitsize:1.}: bool
+    notUsed2 {.bitsize:8.}: cuint
+
+  SOUNDBIAS* {.packed.} = object
+    notUsed1 {.bitsize:1.}: bool
+    biasLevel* {.bitsize:9.}: cuint
+    notUsed2 {.bitsize:4.}: cuint
+    resolution* {.bitsize:2.}: cuint
 
   KeypadRegs = KEYINPUT | KEYCNT
 
